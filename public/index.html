@@ -23,7 +23,7 @@
 
         /* AUTH CARD */
         .auth-card {
-            background: #1e293b; padding: 25px; border-radius: 16px; width: 100%; max-width: 400px;
+            background: #1e293b; padding: 25px; border-radius: 16px; width: 100%; max-width: 420px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.6); border: 1px solid #334155;
             display: flex; flex-direction: column; gap: 12px;
         }
@@ -73,7 +73,7 @@
             width: 100%; max-width: 850px; display: flex; flex-direction: column; gap: 15px;
         }
 
-        /* TOP BAR: USER STATS, CURRENCY */
+        /* TOP BAR */
         .top-bar {
             display: flex; justify-content: space-between; align-items: center;
             background: #1e293b; padding: 12px 20px; border-radius: 12px; border: 1px solid #334155;
@@ -88,7 +88,7 @@
         .user-details h4 { font-size: 15px; color: #fff; }
         .user-rank { font-size: 12px; color: #38bdf8; font-weight: bold; }
 
-        .currencies { display: flex; gap: 15px; }
+        .currencies { display: flex; gap: 15px; align-items: center; }
         .currency-item {
             display: flex; align-items: center; gap: 6px; background: #0f172a;
             padding: 6px 12px; border-radius: 20px; border: 1px solid #334155; font-weight: bold; font-size: 13px;
@@ -124,6 +124,13 @@
         .avatar-box.empty { border-color: #64748b; color: #64748b; }
         .player-name { font-weight: bold; font-size: 12px; text-align: center; }
         .vs-logo { font-size: 38px; font-weight: 900; font-style: italic; color: #ef4444; }
+
+        .settings-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-top: 10px;
+        }
 
         /* MAIN GAMEPLAY LAYOUT */
         .app-container { display: flex; flex-direction: column; width: 100vw; height: 100vh; padding: 12px; gap: 10px; }
@@ -173,7 +180,7 @@
 
                 <form onsubmit="return false;">
                     <div class="form-group" id="name-group" style="display: none; margin-bottom: 8px;">
-                        <label>Tên Tên Nhân Vật</label>
+                        <label>Tên Nhân Vật</label>
                         <input type="text" id="display-name" placeholder="Nhập tên hiển thị...">
                     </div>
 
@@ -228,7 +235,7 @@
 
             <!-- CHỌN CHẾ ĐỘ CHƠI: ĐÁNH THƯỜNG / ĐÁNH HẠNG -->
             <div class="mode-selection">
-                <div class="mode-card active" id="mode-normal">
+                <div class="mode-card" id="mode-normal">
                     <div class="mode-icon">🎮</div>
                     <h3 style="color: #38bdf8;">Đánh Thường</h3>
                     <p>Tự do tạo phòng, giao lưu thử thách với bạn bè.</p>
@@ -241,9 +248,13 @@
                 </div>
             </div>
 
-            <!-- DASHBOARD PHÒNG THI ĐẤU -->
-            <div class="auth-card" style="max-width: 100%;">
+            <!-- DASHBOARD PHÒNG THI ĐẤU (CHỈ HIỆN KHI ĐÃ CHỌN CHẾ ĐỘ) -->
+            <div class="auth-card hidden" id="room-dashboard" style="max-width: 100%;">
                 
+                <div style="text-align: center; margin-bottom: 5px;">
+                    <span id="selected-mode-badge" style="background: #f59e0b; color: #000; font-size: 11px; font-weight: bold; padding: 4px 10px; border-radius: 12px; text-transform: uppercase;"></span>
+                </div>
+
                 <div class="vs-container">
                     <div class="player-card">
                         <div class="avatar-box" id="p1-avatar-box">
@@ -264,18 +275,19 @@
                     </div>
                 </div>
 
+                <!-- TẠO / TÌM PHÒNG -->
                 <div id="step-join">
                     <div class="form-group" style="margin-bottom: 10px;">
                         <label>Mã Phòng (Room ID)</label>
-                        <input type="text" id="room-id" placeholder="Ví dụ: room123">
+                        <input type="text" id="room-id" placeholder="Nhập mã phòng (ví dụ: room123)...">
                     </div>
                     <button class="btn btn-gold" style="width: 100%;" id="btn-join">Vào Phòng Thi Đấu</button>
                 </div>
 
                 <div id="room-status" style="font-size: 12px; color: #94a3b8; text-align: center; margin: 5px 0;"></div>
 
-                <!-- CẤU HÌNH TRẬN ĐẤU (HOST CHỈNH) -->
-                <div id="room-settings" class="hidden" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
+                <!-- BẢNG THÔNG SỐ TÙY CHỈNH KHI ĐÃ VÀO PHÒNG -->
+                <div id="room-settings" class="hidden settings-grid">
                     <div class="form-group">
                         <label>Thể Thức</label>
                         <select id="bo-select">
@@ -286,16 +298,17 @@
                     </div>
 
                     <div class="form-group">
-                        <label>Kích Thước Mảnh</label>
-                        <select id="grid-select">
-                            <option value="3">3 x 3 (9 Mảnh)</option>
-                            <option value="4" selected>4 x 4 (16 Mảnh)</option>
-                            <option value="5">5 x 5 (25 Mảnh)</option>
-                        </select>
+                        <label>Kích Thước Mảnh (Số ô)</label>
+                        <input type="number" id="grid-input" value="4" min="2" max="10" placeholder="Ví dụ: 4 (Lưới 4x4)">
                     </div>
 
                     <div class="form-group">
-                        <label>Ảnh Gợi Ý</label>
+                        <label>Số Mảnh Đúng Được Gợi Ý</label>
+                        <input type="number" id="hint-pieces-input" value="0" min="0" placeholder="Nhập số mảnh ghép sẵn...">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Ảnh Gợi Ý Nền</label>
                         <select id="hint-select">
                             <option value="true" selected>Bật</option>
                             <option value="false">Tắt</option>
@@ -353,7 +366,6 @@
         } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
         import { getFirestore, doc, setDoc, getDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        // FIREBASE CONFIG CỦA BẠN
         const firebaseConfig = {
             apiKey: "AIzaSyCpqwIbFqleWcid_7oE2GKbHJUCxhEGKDc",
             authDomain: "puzzle-online-auth.firebaseapp.com",
@@ -372,10 +384,13 @@
         let currentUser = null;
         let userProfileData = null;
         let isSignUp = false;
-        let selectedMode = 'normal'; // 'normal' hoặc 'ranked'
+        let selectedMode = null; // 'normal' hoặc 'ranked'
 
         const authBox = document.getElementById('auth-box');
         const lobbyBox = document.getElementById('lobby-box');
+        const roomDashboard = document.getElementById('room-dashboard');
+        const selectedModeBadge = document.getElementById('selected-mode-badge');
+
         const formTitle = document.getElementById('form-title');
         const formSubtitle = document.getElementById('form-subtitle');
         const nameGroup = document.getElementById('name-group');
@@ -403,7 +418,6 @@
             }
         });
 
-        // Hàm tính Rank dựa trên số LP
         function getRankTitle(lp) {
             if (lp < 100) return `🏆 Đồng (${lp} LP)`;
             if (lp < 300) return `🥈 Bạc (${lp} LP)`;
@@ -412,7 +426,6 @@
             return `👑 Cao Thủ (${lp} LP)`;
         }
 
-        // Lưu / Cập nhật người dùng vào Database
         async function saveUserToDatabase(user, customName = null) {
             const userRef = doc(db, "users", user.uid);
             const userSnap = await getDoc(userRef);
@@ -427,7 +440,6 @@
                     gold: 1000,
                     gems: 50,
                     lp: 0,
-                    winCount: 0,
                     createdAt: serverTimestamp(),
                     lastLogin: serverTimestamp()
                 };
@@ -450,23 +462,31 @@
             document.getElementById('my-rank-txt').innerText = getRankTitle(userProfileData.lp || 0);
         }
 
-        // Chọn Chế độ Đánh Thường / Đánh Hạng
+        // Click chọn chế độ chơi -> Hiện khu vực tìm/tạo phòng
         const modeNormal = document.getElementById('mode-normal');
         const modeRanked = document.getElementById('mode-ranked');
 
-        modeNormal.addEventListener('click', () => {
-            selectedMode = 'normal';
-            modeNormal.classList.add('active');
-            modeRanked.classList.remove('active');
-        });
+        function selectMode(mode) {
+            selectedMode = mode;
+            roomDashboard.classList.remove('hidden');
 
-        modeRanked.addEventListener('click', () => {
-            selectedMode = 'ranked';
-            modeRanked.classList.add('active');
-            modeNormal.classList.remove('active');
-        });
+            if (mode === 'normal') {
+                modeNormal.classList.add('active');
+                modeRanked.classList.remove('active');
+                selectedModeBadge.innerText = "Chế Độ: Đánh Thường";
+                selectedModeBadge.style.background = "#38bdf8";
+            } else {
+                modeRanked.classList.add('active');
+                modeNormal.classList.remove('active');
+                selectedModeBadge.innerText = "Chế Độ: Đánh Hạng (Rank)";
+                selectedModeBadge.style.background = "#f59e0b";
+            }
+        }
 
-        // Google Auth & Email Auth
+        modeNormal.addEventListener('click', () => selectMode('normal'));
+        modeRanked.addEventListener('click', () => selectMode('ranked'));
+
+        // Auth Click Handlers
         document.getElementById('btn-google-login').addEventListener('click', async () => {
             try {
                 const result = await signInWithPopup(auth, googleProvider);
@@ -508,7 +528,7 @@
             }
         });
 
-        // ================= GAME SOCKET.IO LOGIC =================
+        // ================= SOCKET.IO LOGIC =================
         const socket = io();
 
         const overlay = document.getElementById('overlay');
@@ -528,7 +548,8 @@
 
         const roomSettings = document.getElementById('room-settings');
         const boSelect = document.getElementById('bo-select');
-        const gridSelect = document.getElementById('grid-select');
+        const gridInput = document.getElementById('grid-input');
+        const hintPiecesInput = document.getElementById('hint-pieces-input');
         const hintSelect = document.getElementById('hint-select');
 
         const pickerControls = document.getElementById('picker-controls');
@@ -562,20 +583,27 @@
             stepJoin.classList.add('hidden');
         });
 
-        [boSelect, gridSelect, hintSelect].forEach(elem => {
-            elem.addEventListener('change', () => {
-                if (isHost) {
-                    socket.emit('updateRoomSettings', {
-                        roomId: currentRoomId,
-                        boType: boSelect.value,
-                        gridSize: gridSelect.value,
-                        showHint: hintSelect.value === 'true'
-                    });
-                }
-            });
+        function sendSettingsUpdate() {
+            if (isHost) {
+                const gridSize = parseInt(gridInput.value) || 4;
+                const hintPieces = parseInt(hintPiecesInput.value) || 0;
+
+                socket.emit('updateRoomSettings', {
+                    roomId: currentRoomId,
+                    boType: boSelect.value,
+                    gridSize: gridSize,
+                    hintPieces: hintPieces,
+                    showHint: hintSelect.value === 'true'
+                });
+            }
+        }
+
+        [boSelect, gridInput, hintPiecesInput, hintSelect].forEach(elem => {
+            elem.addEventListener('change', sendSettingsUpdate);
+            elem.addEventListener('keyup', sendSettingsUpdate);
         });
 
-        socket.on('updateRoomState', ({ players, boType, gridSize, showHint }) => {
+        socket.on('updateRoomState', ({ players, boType, gridSize, hintPieces, showHint }) => {
             myIndex = players.findIndex(p => p.id === socket.id);
             isHost = (myIndex === 0);
 
@@ -601,11 +629,13 @@
 
             roomSettings.classList.remove('hidden');
             boSelect.disabled = !isHost;
-            gridSelect.disabled = !isHost;
+            gridInput.disabled = !isHost;
+            hintPiecesInput.disabled = !isHost;
             hintSelect.disabled = !isHost;
 
             boSelect.value = boType;
-            gridSelect.value = gridSize;
+            gridInput.value = gridSize || 4;
+            hintPiecesInput.value = hintPieces || 0;
             hintSelect.value = showHint.toString();
             currentBoType = boType;
 
@@ -634,9 +664,9 @@
         }
 
         function getPickerForRound(round, boType) {
-            if (boType === 1) return 'RANDOM';
-            if (boType === 3) return round === 1 ? 0 : (round === 2 ? 1 : 'RANDOM');
-            if (boType === 5) return round % 2 !== 0 ? (round === 5 ? 'RANDOM' : 0) : 1;
+            if (boType == 1) return 'RANDOM';
+            if (boType == 3) return round === 1 ? 0 : (round === 2 ? 1 : 'RANDOM');
+            if (boType == 5) return round % 2 !== 0 ? (round === 5 ? 'RANDOM' : 0) : 1;
         }
 
         imageInput.addEventListener('change', (e) => {
@@ -655,11 +685,11 @@
             roomStatus.innerText = "⏳ Đã gửi ảnh! Chờ đối thủ...";
         });
 
-        socket.on('gameStarted', ({ imageSrc, gridSize, showHint, currentRound, scores, players }) => {
+        socket.on('gameStarted', ({ imageSrc, gridSize, hintPieces, showHint, currentRound, scores, players }) => {
             overlay.classList.add('hidden');
             roundInfo.innerText = `ROUND ${currentRound}`;
             updateScoreDisplay(scores, players);
-            initBoard(imageSrc, gridSize, showHint);
+            initBoard(imageSrc, gridSize, hintPieces, showHint);
         });
 
         function updateScoreDisplay(scores, players) {
@@ -667,7 +697,7 @@
             p2ScoreTxt.innerText = `${players[1] ? players[1].username : 'P2'}: ${scores[players[1] ? players[1].id : ''] || 0}`;
         }
 
-        function initBoard(imgSrc, size, showHint) {
+        function initBoard(imgSrc, size, hintPiecesCount, showHint) {
             board.innerHTML = ''; piecesPool.innerHTML = '';
             p1Prog.innerText = "0%"; p2Prog.innerText = "0%";
             totalPiecesCount = size * size;
@@ -693,7 +723,13 @@
                     board.style.backgroundImage = 'none';
                 }
 
-                let pieces = [];
+                // Chọn danh sách mảnh sẽ ghép sẵn ngẫu nhiên
+                let allIndices = Array.from({length: totalPiecesCount}, (_, i) => i);
+                allIndices.sort(() => Math.random() - 0.5);
+                let hintIndices = new Set(allIndices.slice(0, Math.min(hintPiecesCount || 0, totalPiecesCount)));
+
+                let poolPieces = [];
+
                 for (let r = 0; r < rows; r++) {
                     for (let c = 0; c < cols; c++) {
                         const idx = r * cols + c;
@@ -714,11 +750,18 @@
                             draggedPieceId = e.target.id;
                             e.dataTransfer.setData('text/plain', e.target.id);
                         });
-                        pieces.push(p);
+
+                        // Nếu là mảnh được gợi ý sẵn -> Ghép luôn vào ô đúng
+                        if (hintIndices.has(idx)) {
+                            tile.appendChild(p);
+                        } else {
+                            poolPieces.push(p);
+                        }
                     }
                 }
-                pieces.sort(() => Math.random() - 0.5);
-                pieces.forEach(p => piecesPool.appendChild(p));
+
+                poolPieces.sort(() => Math.random() - 0.5);
+                poolPieces.forEach(p => piecesPool.appendChild(p));
 
                 piecesPool.addEventListener('dragover', e => e.preventDefault());
                 piecesPool.addEventListener('drop', e => {
@@ -727,6 +770,8 @@
                     if (p) piecesPool.appendChild(p);
                     checkProgress();
                 });
+
+                checkProgress();
             };
             img.src = imgSrc;
         }
@@ -782,7 +827,6 @@
                 userProfileData.gold = (userProfileData.gold || 0) + goldAdd;
                 userProfileData.gems = (userProfileData.gems || 0) + gemsAdd;
                 userProfileData.lp = (userProfileData.lp || 0) + lpAdd;
-                userProfileData.winCount = (userProfileData.winCount || 0) + 1;
 
                 rewardMsg = `\n🎁 Phần thưởng: +${goldAdd} Vàng, +${gemsAdd} Kim Cương${lpAdd > 0 ? `, +${lpAdd} LP Rank` : ''}`;
             } else {
@@ -792,7 +836,6 @@
                 }
             }
 
-            // Cập nhật lại vào Firebase Firestore
             const userRef = doc(db, "users", currentUser.uid);
             await setDoc(userRef, userProfileData, { merge: true });
 
