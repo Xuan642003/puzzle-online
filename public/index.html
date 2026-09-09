@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Game Xếp Hình Solo Online</title>
+    <title>Solo Xếp Hình BO3/BO5 Online</title>
     <script src="/socket.io/socket.io.js"></script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -12,29 +12,32 @@
             font-family: Arial, sans-serif; background-color: #f0f2f5; user-select: none;
         }
 
-        /* Lobby / Đăng nhập phòng */
+        /* LOBBY MODAL */
         .lobby-overlay {
             position: fixed; top:0; left:0; width:100vw; height:100vh;
-            background: rgba(0,0,0,0.8); display: flex; justify-content: center; align-items: center; z-index: 1000;
+            background: rgba(0,0,0,0.85); display: flex; justify-content: center; align-items: center; z-index: 1000;
         }
         .lobby-card {
-            background: white; padding: 25px; border-radius: 12px; width: 350px;
-            display: flex; flex-direction: column; gap: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            background: white; padding: 25px; border-radius: 12px; width: 380px;
+            display: flex; flex-direction: column; gap: 15px; box-shadow: 0 5px 20px rgba(0,0,0,0.3);
         }
-        .lobby-card h2 { text-align: center; }
+        .lobby-card h2 { text-align: center; color: #333; }
         .form-group { display: flex; flex-direction: column; gap: 5px; }
-        .form-group input { padding: 8px; border: 1px solid #ccc; border-radius: 6px; }
+        .form-group label { font-size: 13px; font-weight: bold; color: #555; }
+        .form-group input, .form-group select { padding: 8px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; }
         .btn { padding: 10px; background: #007bff; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
         .btn:hover { background: #0056b3; }
         .hidden { display: none !important; }
 
-        /* Interface Game */
+        /* GAME LAYOUT */
         .app-container { display: flex; flex-direction: column; width: 100%; height: 100%; padding: 10px; gap: 10px; }
         header {
             display: flex; justify-content: space-between; align-items: center;
             background: #fff; padding: 10px 20px; border-radius: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
-        .progress-box { display: flex; gap: 20px; font-weight: bold; }
+        .score-board { font-weight: bold; font-size: 16px; display: flex; gap: 20px; }
+        .p1-color { color: #007bff; }
+        .p2-color { color: #d9534f; }
 
         .game-container { flex: 1; display: flex; gap: 15px; justify-content: center; align-items: center; min-height: 0; }
         .board-wrapper { flex: 1; height: 100%; display: flex; justify-content: center; align-items: center; }
@@ -52,39 +55,57 @@
 </head>
 <body>
 
-    <!-- MÀN HÌNH TẠO / THAM GIA PHÒNG -->
+    <!-- LOBBY CHI TIẾT -->
     <div class="lobby-overlay" id="lobby">
         <div class="lobby-card">
-            <h2>⚔️ Thi Đấu Online</h2>
-            <div class="form-group">
-                <label>Tên người chơi:</label>
-                <input type="text" id="username" placeholder="Nhập tên của bạn">
+            <h2>⚔️ Thi Đấu Solo Online</h2>
+            
+            <div id="step-join">
+                <div class="form-group" style="margin-bottom:10px;">
+                    <label>Tên người chơi:</label>
+                    <input type="text" id="username" placeholder="Nhập tên...">
+                </div>
+                <div class="form-group" style="margin-bottom:15px;">
+                    <label>Mã Phòng (Room ID):</label>
+                    <input type="text" id="room-id" placeholder="Ví dụ: solo123">
+                </div>
+                <button class="btn" style="width:100%;" id="btn-join">Vào Phòng</button>
             </div>
-            <div class="form-group">
-                <label>Mã Phòng (Room ID):</label>
-                <input type="text" id="room-id" placeholder="VD: room123">
+
+            <div id="room-status" style="font-size:13px; color:#555; text-align:center;"></div>
+
+            <!-- CHỦ PHÒNG CÀI ĐẶT THỂ THỨC -->
+            <div class="form-group hidden" id="host-bo-settings">
+                <label>Thể thức thi đấu:</label>
+                <select id="bo-select">
+                    <option value="1">BO1 (Chơi 1 Trận)</option>
+                    <option value="3" selected>BO3 (Thắng 2/3 Trận)</option>
+                    <option value="5">BO5 (Thắng 3/5 Trận)</option>
+                </select>
             </div>
-            <button class="btn" id="btn-join">Vào Phòng</button>
 
-            <div id="room-status" style="font-size:13px; color:#666; text-align:center;"></div>
-
-            <!-- Chỉ chủ phòng mới chọn ảnh -->
-            <div class="form-group hidden" id="host-controls">
-                <label>Chọn ảnh thi đấu:</label>
+            <!-- NÚT UPLOAD ÁNH KHI ĐẾN LƯỢT -->
+            <div class="form-group hidden" id="picker-controls">
+                <label id="picker-label" style="color:#d9534f;"></label>
                 <input type="file" id="image-input" accept="image/*">
-                <button class="btn" style="background:#28a745; margin-top:10px;" id="btn-start">Bắt Đầu Trận Đấu</button>
+                <button class="btn" style="background:#28a745; margin-top:10px;" id="btn-submit-img">Xác Nhận Ảnh</button>
             </div>
         </div>
     </div>
 
-    <!-- MÀN HÌNH CHÍNH GAME -->
+    <!-- GAMEPLAY INTERFACE -->
     <div class="app-container">
         <header>
-            <div class="progress-box">
-                <span style="color:#007bff;" id="p1-status">Bạn: 0%</span>
-                <span style="color:#d9534f;" id="p2-status">Đối thủ: 0%</span>
+            <div class="score-board">
+                <span class="p1-color" id="p1-score-txt">P1: 0 Ván</span>
+                <span style="color:#aaa;">-</span>
+                <span class="p2-color" id="p2-score-txt">P2: 0 Ván</span>
             </div>
-            <h2 id="game-status" style="font-size:16px; color:#28a745;">Đang chờ người chơi...</h2>
+            <h3 id="round-info" style="color:#333;">ROUND 1</h3>
+            <div class="score-board">
+                <span class="p1-color" id="p1-prog">P1: 0%</span>
+                <span class="p2-color" id="p2-prog">P2: 0%</span>
+            </div>
         </header>
 
         <main class="game-container">
@@ -98,141 +119,163 @@
     <script>
         const socket = io();
 
-        // DOM
+        // Elements
         const lobby = document.getElementById('lobby');
-        const usernameInput = document.getElementById('username');
-        const roomIdInput = document.getElementById('room-id');
+        const stepJoin = document.getElementById('step-join');
+        const usernameIn = document.getElementById('username');
+        const roomIdIn = document.getElementById('room-id');
         const btnJoin = document.getElementById('btn-join');
         const roomStatus = document.getElementById('room-status');
-        const hostControls = document.getElementById('host-controls');
-        const imageInput = document.getElementById('image-input');
-        const btnStart = document.getElementById('btn-start');
 
-        const p1Status = document.getElementById('p1-status');
-        const p2Status = document.getElementById('p2-status');
-        const gameStatus = document.getElementById('game-status');
+        const hostBoSettings = document.getElementById('host-bo-settings');
+        const boSelect = document.getElementById('bo-select');
+        const pickerControls = document.getElementById('picker-controls');
+        const pickerLabel = document.getElementById('picker-label');
+        const imageInput = document.getElementById('image-input');
+        const btnSubmitImg = document.getElementById('btn-submit-img');
+
+        const p1ScoreTxt = document.getElementById('p1-score-txt');
+        const p2ScoreTxt = document.getElementById('p2-score-txt');
+        const roundInfo = document.getElementById('round-info');
+        const p1Prog = document.getElementById('p1-prog');
+        const p2Prog = document.getElementById('p2-prog');
 
         const boardWrapper = document.getElementById('board-wrapper');
         const board = document.getElementById('board');
         const piecesPool = document.getElementById('pieces-pool');
 
-        let myUsername = '';
-        let currentRoomId = '';
-        let isHost = false;
-        let loadedImageSrc = '';
-        let draggedPieceId = null;
-        let totalPiecesCount = 0;
+        // State
+        let myUsername = '', currentRoomId = '', isHost = false, myIndex = -1;
+        let selectedImageSrc = '', draggedPieceId = null, totalPiecesCount = 16;
 
-        // 1. Kết nối Phòng
+        // 1. Tham Gia Phòng
         btnJoin.addEventListener('click', () => {
-            myUsername = usernameInput.value.trim();
-            currentRoomId = roomIdInput.value.trim();
-
-            if (!myUsername || !currentRoomId) {
-                alert("Vui lòng nhập đầy đủ tên và Mã phòng!");
-                return;
-            }
+            myUsername = usernameIn.value.trim();
+            currentRoomId = roomIdIn.value.trim();
+            if (!myUsername || !currentRoomId) return alert("Vui lòng nhập đầy đủ thông tin!");
 
             socket.emit('joinRoom', { roomId: currentRoomId, username: myUsername });
-            btnJoin.disabled = true;
+            stepJoin.classList.add('hidden');
+        });
+
+        boSelect.addEventListener('change', () => {
+            socket.emit('setBoType', { roomId: currentRoomId, boType: boSelect.value });
         });
 
         // Lắng nghe cập nhật phòng
         socket.on('updatePlayers', (players) => {
-            roomStatus.innerText = `Đã vào phòng. Số người hiện tại: ${players.length}/2`;
-            if (players[0].id === socket.id) {
-                isHost = true;
-                hostControls.classList.remove('hidden'); // Người vào đầu tiên làm chủ phòng
-            }
+            myIndex = players.findIndex(p => p.id === socket.id);
+            isHost = (myIndex === 0);
+            roomStatus.innerText = `Đã vào phòng. Số người chơi: ${players.length}/2`;
+            if (isHost && players.length === 1) hostBoSettings.classList.remove('hidden');
         });
 
-        socket.on('roomReady', (msg) => {
+        socket.on('roomReady', ({ msg, players, boType }) => {
             roomStatus.innerText = msg;
+            checkTurnToPickImage(1, boType, players);
         });
 
-        // 2. Load ảnh và bắt đầu game
+        socket.on('boTypeUpdated', (boType) => {
+            roomStatus.innerText = `Chủ phòng đã chỉnh thể thức: BO${boType}`;
+        });
+
+        // 2. Logic Hiển Thị Chọn Ảnh Theo Round
+        function checkTurnToPickImage(round, boType, players) {
+            pickerControls.classList.add('hidden');
+            let pickerIndex = getPickerForRound(round, boType);
+
+            if (pickerIndex === 'RANDOM') {
+                pickerControls.classList.remove('hidden');
+                pickerLabel.innerText = `🎲 Trận Quyết Định! CẢ 2 CÙNG CHỌN ÁNH (Server sẽ Random):`;
+            } else if (myIndex === pickerIndex) {
+                pickerControls.classList.remove('hidden');
+                pickerLabel.innerText = `📸 Lượt CỦA BẠN chọn ảnh cho Round ${round}:`;
+            } else {
+                roomStatus.innerText = `⏳ Đang chờ ${players[pickerIndex].username} chọn ảnh cho Round ${round}...`;
+            }
+        }
+
+        function getPickerForRound(round, boType) {
+            if (boType === 1) return 'RANDOM';
+            if (boType === 3) return round === 1 ? 0 : (round === 2 ? 1 : 'RANDOM');
+            if (boType === 5) return round % 2 !== 0 ? (round === 5 ? 'RANDOM' : 0) : 1;
+        }
+
         imageInput.addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (file) {
                 const reader = new FileReader();
-                reader.onload = (event) => { loadedImageSrc = event.target.result; };
+                reader.onload = (evt) => { selectedImageSrc = evt.target.result; };
                 reader.readAsDataURL(file);
             }
         });
 
-        btnStart.addEventListener('click', () => {
-            if (!loadedImageSrc) {
-                alert("Vui lòng chọn ảnh trước!");
-                return;
-            }
-            socket.emit('startGame', { roomId: currentRoomId, imageSrc: loadedImageSrc, totalPieces: 16 });
+        btnSubmitImg.addEventListener('click', () => {
+            if (!selectedImageSrc) return alert("Vui lòng chọn 1 ảnh!");
+            socket.emit('submitImage', { roomId: currentRoomId, imageSrc: selectedImageSrc });
+            pickerControls.classList.add('hidden');
+            roomStatus.innerText = "⏳ Đã tải ảnh lên! Đang đợi đồng bộ game...";
         });
 
-        // Lắng nghe sự kiện bắt đầu game từ Server gửi tới cả 2 máy
-        socket.on('gameStarted', ({ imageSrc, totalPieces }) => {
+        socket.on('waitingForOtherImage', () => {
+            roomStatus.innerText = "⏳ Đã nhận ảnh của bạn. Đang chờ đối thủ tải ảnh để Random...";
+        });
+
+        // 3. Khởi tạo ván đấu
+        socket.on('gameStarted', ({ imageSrc, currentRound, scores, players }) => {
             lobby.classList.add('hidden');
-            gameStatus.innerText = "Trận đấu đang diễn ra!";
+            roundInfo.innerText = `ROUND ${currentRound}`;
+            updateScoreDisplay(scores, players);
             initBoard(imageSrc);
         });
 
-        // 3. Khởi tạo Bảng ghép
+        function updateScoreDisplay(scores, players) {
+            p1ScoreTxt.innerText = `${players[0].username}: ${scores[players[0].id] || 0} Ván`;
+            p2ScoreTxt.innerText = `${players[1] ? players[1].username : 'P2'}: ${scores[players[1] ? players[1].id : ''] || 0} Ván`;
+        }
+
         function initBoard(imgSrc) {
-            board.innerHTML = '';
-            piecesPool.innerHTML = '';
+            board.innerHTML = ''; piecesPool.innerHTML = '';
+            p1Prog.innerText = "0%"; p2Prog.innerText = "0%";
 
             const img = new Image();
             img.onload = () => {
-                const cols = 4, rows = 4; // Cố định 4x4 (16 mảnh)
-                totalPiecesCount = cols * rows;
-
-                const maxW = boardWrapper.clientWidth - 10;
-                const maxH = boardWrapper.clientHeight - 10;
+                const cols = 4, rows = 4;
+                const maxW = boardWrapper.clientWidth - 10, maxH = boardWrapper.clientHeight - 10;
                 const aspectRatio = img.naturalWidth / img.naturalHeight;
 
-                let displayWidth = (maxW / maxH > aspectRatio) ? maxH * aspectRatio : maxW;
-                let displayHeight = displayWidth / aspectRatio;
+                let displayW = (maxW / maxH > aspectRatio) ? maxH * aspectRatio : maxW;
+                let displayH = displayW / aspectRatio;
+                const pW = displayW / cols, pH = displayH / rows;
 
-                const pieceW = displayWidth / cols;
-                const pieceH = displayHeight / rows;
-
-                board.style.width = `${displayWidth}px`;
-                board.style.height = `${displayHeight}px`;
-                board.style.gridTemplateColumns = `repeat(${cols}, ${pieceW}px)`;
-                board.style.gridTemplateRows = `repeat(${rows}, ${pieceH}px)`;
+                board.style.width = `${displayW}px`; board.style.height = `${displayH}px`;
+                board.style.gridTemplateColumns = `repeat(${cols}, ${pW}px)`;
+                board.style.gridTemplateRows = `repeat(${rows}, ${pH}px)`;
 
                 let pieces = [];
-
                 for (let r = 0; r < rows; r++) {
                     for (let c = 0; c < cols; c++) {
-                        const index = r * cols + c;
-
+                        const idx = r * cols + c;
                         const tile = document.createElement('div');
                         tile.classList.add('board-tile');
-                        tile.dataset.index = index;
+                        tile.dataset.index = idx;
                         tile.addEventListener('dragover', e => e.preventDefault());
                         tile.addEventListener('drop', handleDropTile);
                         board.appendChild(tile);
 
-                        const piece = document.createElement('div');
-                        piece.classList.add('piece');
-                        piece.id = `piece-${index}`;
-                        piece.dataset.correctIndex = index;
-                        piece.draggable = true;
-                        piece.style.width = `${pieceW}px`;
-                        piece.style.height = `${pieceH}px`;
-                        piece.style.backgroundImage = `url(${imgSrc})`;
-                        piece.style.backgroundSize = `${displayWidth}px ${displayHeight}px`;
-                        piece.style.backgroundPosition = `-${c * pieceW}px -${r * pieceH}px`;
-
-                        piece.addEventListener('dragstart', e => {
+                        const p = document.createElement('div');
+                        p.classList.add('piece'); p.id = `p-${idx}`; p.dataset.correctIndex = idx;
+                        p.draggable = true; p.style.width = `${pW}px`; p.style.height = `${pH}px`;
+                        p.style.backgroundImage = `url(${imgSrc})`;
+                        p.style.backgroundSize = `${displayW}px ${displayH}px`;
+                        p.style.backgroundPosition = `-${c * pW}px -${r * pH}px`;
+                        p.addEventListener('dragstart', e => {
                             draggedPieceId = e.target.id;
                             e.dataTransfer.setData('text/plain', e.target.id);
                         });
-
-                        pieces.push(piece);
+                        pieces.push(p);
                     }
                 }
-
                 pieces.sort(() => Math.random() - 0.5);
                 pieces.forEach(p => piecesPool.appendChild(p));
 
@@ -251,50 +294,43 @@
             e.preventDefault();
             const tile = e.currentTarget;
             const piece = document.getElementById(draggedPieceId);
-
             if (piece && tile.children.length === 0) {
                 tile.appendChild(piece);
                 checkProgress();
             }
         }
 
-        // Tính % tiến độ và đồng bộ lên Server
         function checkProgress() {
             const tiles = board.querySelectorAll('.board-tile');
             let correctCount = 0;
-
             tiles.forEach(tile => {
                 const child = tile.children[0];
-                if (child && child.dataset.correctIndex === tile.dataset.index) {
-                    correctCount++;
-                }
+                if (child && child.dataset.correctIndex === tile.dataset.index) correctCount++;
             });
 
-            // Gửi % về Server
-            socket.emit('updateProgress', {
-                roomId: currentRoomId,
-                placedPieces: correctCount,
-                totalPieces: totalPiecesCount
-            });
+            socket.emit('updateProgress', { roomId: currentRoomId, placedPieces: correctCount, totalPieces: totalPiecesCount });
 
-            // Nếu đúng hết 100% mảnh -> Báo Thắng
             if (correctCount === totalPiecesCount) {
                 socket.emit('playerWin', { roomId: currentRoomId, username: myUsername });
             }
         }
 
-        // Lắng nghe % tiến độ đối thủ từ Server
-        socket.on('playerProgressUpdate', ({ socketId, username, progress }) => {
-            if (socketId === socket.id) {
-                p1Status.innerText = `Bạn (${username}): ${progress}%`;
-            } else {
-                p2Status.innerText = `Đối thủ (${username}): ${progress}%`;
-            }
+        socket.on('playerProgressUpdate', ({ socketId, progress }) => {
+            if (socketId === socket.id) p1Prog.innerText = `Bạn: ${progress}%`;
+            else p2Prog.innerText = `Đối thủ: ${progress}%`;
         });
 
-        // Kết thúc game
-        socket.on('gameOver', ({ winner }) => {
-            alert(`🏆 TRẬN ĐẤU KẾT THÚC! NGƯỜI THẮNG: ${winner.toUpperCase()}`);
+        // 4. Kết Thúc Round / Match
+        socket.on('roundOver', ({ roundWinner, nextRound, scores, players, nextPickerIndex }) => {
+            alert(`🎉 ${roundWinner.toUpperCase()} đã thắng Round này!`);
+            selectedImageSrc = '';
+            lobby.classList.remove('hidden');
+            updateScoreDisplay(scores, players);
+            checkTurnToPickImage(nextRound, parseInt(boSelect.value), players);
+        });
+
+        socket.on('matchOver', ({ winner, scores, players }) => {
+            alert(`🏆 CHÚC MỪNG ${winner.toUpperCase()} ĐÃ THẮNG CHUNG CUỘC TRẬN THI ĐẤU!`);
             location.reload();
         });
     </script>
