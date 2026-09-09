@@ -8,61 +8,70 @@ app.use(express.static(__dirname + '/public'));
 let rooms = {};
 
 io.on('connection', (socket) => {
-    // 1. Tham gia phòng
-    socket.on('joinRoom', ({ roomId, username }) => {
+    // 1. Vào phòng
+    socket.on('joinRoom', ({ roomId, username, avatar, mode }) => {
         socket.join(roomId);
 
         if (!rooms[roomId]) {
             rooms[roomId] = {
+                mode: mode || 'normal',
                 players: [],
                 boType: 3,           // Mặc định BO3
-                gridSize: 4,         // Mặc định 4x4 (16 mảnh)
+                gridSize: 4,         // Mặc định 4x4
+                hintPieces: 0,       // Mặc định 0 mảnh đúng sẵn
                 showHint: true,      // Mặc định Bật ảnh gợi ý
-                currentRound: 1,
-                uploadedImages: {},
-                scores: {},
+                currentRound: 1,     // Round hiện tại
+                uploadedImages: {},  // Lưu ảnh nhận được ở round quyết định
+                scores: {},          // Tỉ số thắng
                 isRoundActive: false
             };
         }
 
         const room = rooms[roomId];
         
+        // Thêm người chơi mới
         if (room.players.length < 2) {
             room.players.push({ 
                 id: socket.id, 
-                username, 
-                isHost: room.players.length === 0,
-                avatar: `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(username)}` // Avatar tự động
+                username: username || 'Player', 
+                avatar: avatar || '', 
+                isHost: room.players.length === 0 
             });
             room.scores[socket.id] = 0;
         }
 
-        // Gửi danh sách người chơi và cấu hình phòng
+        // Phát thông tin phòng cập nhật cho các người chơi trong phòng
         io.to(roomId).emit('updateRoomState', {
             players: room.players,
             boType: room.boType,
             gridSize: room.gridSize,
-            showHint: room.showHint
+            hintPieces: room.hintPieces,
+            showHint: room.showHint,
+            mode: room.mode
         });
     });
 
-    // 2. Chủ phòng thay đổi cài đặt (BO, Số mảnh, Ảnh gợi ý)
-    socket.on('updateRoomSettings', ({ roomId, boType, gridSize, showHint }) => {
+    // 2. Chủ phòng cập nhật cài đặt (BO, Kích thước lưới, Số mảnh gợi ý, Ảnh nền)
+    socket.on('updateRoomSettings', ({ roomId, boType, gridSize, hintPieces, showHint }) => {
         const room = rooms[roomId];
-        if (room && room.players[0]?.id === socket.id) {
-            room.boType = parseInt(boType);
-            room.gridSize = parseInt(gridSize);
-            room.showHint = !!showHint;
+        if (room) {
+            room.boType = parseInt(boType) || 3;
+            room.gridSize = parseInt(gridSize) || 4;
+            room.hintPieces = parseInt(hintPieces) || 0;
+            room.showHint = (showHint === true || showHint === 'true');
 
-            io.to(roomId).emit('roomSettingsUpdated', {
+            io.to(roomId).emit('updateRoomState', {
+                players: room.players,
                 boType: room.boType,
                 gridSize: room.gridSize,
-                showHint: room.showHint
+                hintPieces: room.hintPieces,
+                showHint: room.showHint,
+                mode: room.mode
             });
         }
     });
 
-    // 3. Xử lý tải ảnh lên từng round
+    // 3. Xử lý logic Picker từng ván & Nhận ảnh
     socket.on('submitImage', ({ roomId, imageSrc }) => {
         const room = rooms[roomId];
         if (!room) return;
@@ -70,15 +79,19 @@ io.on('connection', (socket) => {
         const round = room.currentRound;
         const pickerIndex = getPickerForRound(round, room.boType);
 
+        // Trường hợp Pick cố định (P1 hoặc P2)
         if (pickerIndex === 0 || pickerIndex === 1) {
             startRoundGame(roomId, imageSrc);
-        } else if (pickerIndex === 'RANDOM') {
+        } 
+        // Trường hợp Random (Trận quyết định / tie-breaker)
+        else if (pickerIndex === 'RANDOM') {
             room.uploadedImages[socket.id] = imageSrc;
 
+            // Nếu cả 2 đã upload ảnh xong
             if (Object.keys(room.uploadedImages).length === 2) {
                 const imgArray = Object.values(room.uploadedImages);
                 const selectedImg = imgArray[Math.floor(Math.random() * imgArray.length)];
-                room.uploadedImages = {};
+                room.uploadedImages = {}; // Reset kho ảnh tạm
                 startRoundGame(roomId, selectedImg);
             } else {
                 socket.emit('waitingForOtherImage');
@@ -86,7 +99,7 @@ io.on('connection', (socket) => {
         }
     });
 
-    // 4. Đồng bộ tiến độ
+    // 4. Đồng bộ tiến độ kéo hình
     socket.on('updateProgress', ({ roomId, placedPieces, totalPieces }) => {
         if (rooms[roomId]) {
             const player = rooms[roomId].players.find(p => p.id === socket.id);
@@ -101,7 +114,7 @@ io.on('connection', (socket) => {
         }
     });
 
-    // 5. Thắng Round / Thắng Match
+    // 5. Xử lý Thắng Ván
     socket.on('playerWin', ({ roomId, username }) => {
         const room = rooms[roomId];
         if (!room || !room.isRoundActive) return;
@@ -111,15 +124,16 @@ io.on('connection', (socket) => {
 
         const maxWins = Math.ceil(room.boType / 2);
         const p1Score = room.scores[room.players[0].id] || 0;
-        const p2Score = room.scores[room.players[1]?.id] || 0;
+        const p2Score = room.players[1] ? (room.scores[room.players[1].id] || 0) : 0;
 
+        // Kiểm tra xem đã ai thắng Series chưa
         if (p1Score >= maxWins || p2Score >= maxWins) {
             io.to(roomId).emit('matchOver', {
                 winner: username,
                 scores: room.scores,
                 players: room.players
             });
-            delete rooms[roomId];
+            delete rooms[roomId]; // Xóa phòng sau khi hoàn thành series
         } else {
             room.currentRound++;
             io.to(roomId).emit('roundOver', {
@@ -132,32 +146,56 @@ io.on('connection', (socket) => {
         }
     });
 
+    // 6. Xử lý khi ngắt kết nối
     socket.on('disconnect', () => {
         for (let roomId in rooms) {
-            rooms[roomId].players = rooms[roomId].players.filter(p => p.id !== socket.id);
-            io.to(roomId).emit('updateRoomState', {
-                players: rooms[roomId].players,
-                boType: rooms[roomId].boType,
-                gridSize: rooms[roomId].gridSize,
-                showHint: rooms[roomId].showHint
-            });
-            if (rooms[roomId].players.length === 0) delete rooms[roomId];
+            const room = rooms[roomId];
+            room.players = room.players.filter(p => p.id !== socket.id);
+            delete room.scores[socket.id];
+
+            if (room.players.length === 0) {
+                delete rooms[roomId];
+            } else {
+                io.to(roomId).emit('updateRoomState', {
+                    players: room.players,
+                    boType: room.boType,
+                    gridSize: room.gridSize,
+                    hintPieces: room.hintPieces,
+                    showHint: room.showHint,
+                    mode: room.mode
+                });
+            }
         }
     });
 });
 
+// Hàm xác định ai có quyền chọn ảnh theo Round
 function getPickerForRound(round, boType) {
     if (boType === 1) return 'RANDOM';
-    if (boType === 3) return round === 1 ? 0 : (round === 2 ? 1 : 'RANDOM');
-    if (boType === 5) return round % 2 !== 0 ? (round === 5 ? 'RANDOM' : 0) : 1;
+    if (boType === 3) {
+        if (round === 1) return 0; // Host (P1)
+        if (round === 2) return 1; // Đối thủ (P2)
+        return 'RANDOM';           // Round 3
+    }
+    if (boType === 5) {
+        if (round === 1) return 0;
+        if (round === 2) return 1;
+        if (round === 3) return 0;
+        if (round === 4) return 1;
+        return 'RANDOM';           // Round 5
+    }
 }
 
+// Hàm khởi tạo bắt đầu 1 ván đấu
 function startRoundGame(roomId, imageSrc) {
     const room = rooms[roomId];
+    if (!room) return;
+    
     room.isRoundActive = true;
     io.to(roomId).emit('gameStarted', {
         imageSrc,
         gridSize: room.gridSize,
+        hintPieces: room.hintPieces,
         showHint: room.showHint,
         currentRound: room.currentRound,
         scores: room.scores,
