@@ -3,105 +3,188 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Solo Xếp Hình BO3/BO5 Online</title>
+    <title>Solo Xếp Hình Esports VS</title>
     <script src="/socket.io/socket.io.js"></script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        html, body {
+        body {
             width: 100vw; height: 100vh; overflow: hidden;
-            font-family: Arial, sans-serif; background-color: #f0f2f5; user-select: none;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0f172a; color: #fff; user-select: none;
         }
 
-        /* LOBBY MODAL */
+        /* LOBBY MODAL BACKGROUND */
         .lobby-overlay {
-            position: fixed; top:0; left:0; width:100vw; height:100vh;
-            background: rgba(0,0,0,0.85); display: flex; justify-content: center; align-items: center; z-index: 1000;
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: radial-gradient(circle, #1e293b 0%, #0f172a 100%);
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            z-index: 1000; padding: 20px;
         }
+
+        /* BANNER VS PHONG CÁCH ESPORTS */
+        .vs-container {
+            display: flex; align-items: center; justify-content: center;
+            gap: 30px; margin-bottom: 25px; width: 100%; max-width: 600px;
+        }
+        .player-card {
+            display: flex; flex-direction: column; align-items: center; gap: 8px; width: 110px;
+        }
+        .avatar-box {
+            width: 90px; height: 90px; border-radius: 12px; border: 3px solid #3b82f6;
+            background: #1e293b; display: flex; justify-content: center; align-items: center;
+            overflow: hidden; box-shadow: 0 0 15px rgba(59, 130, 246, 0.5);
+        }
+        .avatar-box img { width: 100%; height: 100%; object-fit: cover; }
+        .avatar-box.empty { border-color: #64748b; box-shadow: none; font-size: 30px; color: #64748b; }
+        .player-name { font-weight: bold; font-size: 14px; text-shadow: 0 2px 4px rgba(0,0,0,0.8); }
+
+        .vs-logo {
+            font-size: 48px; font-weight: 900; italic: true;
+            background: linear-gradient(135deg, #f59e0b, #ef4444);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 20px rgba(239, 68, 68, 0.6);
+            letter-spacing: -2px; font-style: italic;
+        }
+
+        /* LOBBY CARD FORM */
         .lobby-card {
-            background: white; padding: 25px; border-radius: 12px; width: 380px;
-            display: flex; flex-direction: column; gap: 15px; box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+            background: #1e293b; padding: 25px; border-radius: 16px; width: 100%; max-width: 420px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5); border: 1px solid #334155;
+            display: flex; flex-direction: column; gap: 12px;
         }
-        .lobby-card h2 { text-align: center; color: #333; }
-        .form-group { display: flex; flex-direction: column; gap: 5px; }
-        .form-group label { font-size: 13px; font-weight: bold; color: #555; }
-        .form-group input, .form-group select { padding: 8px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; }
-        .btn { padding: 10px; background: #007bff; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
-        .btn:hover { background: #0056b3; }
+        .form-group { display: flex; flex-direction: column; gap: 6px; }
+        .form-group label { font-size: 12px; font-weight: bold; color: #94a3b8; text-transform: uppercase; }
+        .form-group input, .form-group select {
+            padding: 10px; background: #0f172a; border: 1px solid #334155;
+            border-radius: 8px; color: #fff; font-size: 14px; outline: none;
+        }
+        .form-group input:focus, .form-group select:focus { border-color: #3b82f6; }
+
+        .btn {
+            padding: 12px; background: #2563eb; color: white; border: none;
+            border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s;
+            text-transform: uppercase; letter-spacing: 1px;
+        }
+        .btn:hover { background: #1d4ed8; }
+        .btn-green { background: #16a34a; } .btn-green:hover { background: #15803d; }
         .hidden { display: none !important; }
 
-        /* GAME LAYOUT */
-        .app-container { display: flex; flex-direction: column; width: 100%; height: 100%; padding: 10px; gap: 10px; }
+        /* GAMEPLAY LAYOUT */
+        .app-container { display: flex; flex-direction: column; width: 100vw; height: 100vh; padding: 15px; gap: 10px; }
         header {
             display: flex; justify-content: space-between; align-items: center;
-            background: #fff; padding: 10px 20px; border-radius: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            background: #1e293b; padding: 10px 20px; border-radius: 12px; border: 1px solid #334155;
         }
-        .score-board { font-weight: bold; font-size: 16px; display: flex; gap: 20px; }
-        .p1-color { color: #007bff; }
-        .p2-color { color: #d9534f; }
+        .score-board { font-weight: bold; font-size: 16px; display: flex; gap: 15px; }
+        .p1-color { color: #3b82f6; } .p2-color { color: #ef4444; }
 
         .game-container { flex: 1; display: flex; gap: 15px; justify-content: center; align-items: center; min-height: 0; }
-        .board-wrapper { flex: 1; height: 100%; display: flex; justify-content: center; align-items: center; }
+        .board-wrapper { flex: 1; height: 100%; display: flex; justify-content: center; align-items: center; position: relative; }
         
-        #board { display: grid; border: 2px solid #333; background-color: #e0e0e0; box-sizing: content-box; }
-        .board-tile { box-sizing: border-box; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.15); }
+        #board {
+            display: grid; border: 2px solid #475569; background-color: #0f172a;
+            box-sizing: content-box; background-repeat: no-repeat; background-position: center;
+        }
+        .board-tile { box-sizing: border-box; border: 1px dashed rgba(255, 255, 255, 0.15); }
 
         #pieces-pool {
-            flex: 1; height: 100%; border: 2px dashed #888; background-color: #fff;
-            border-radius: 8px; padding: 10px; display: flex; flex-wrap: wrap;
-            gap: 4px; align-content: flex-start; justify-content: center; overflow-y: auto;
+            flex: 1; height: 100%; border: 2px dashed #334155; background-color: #1e293b;
+            border-radius: 12px; padding: 10px; display: flex; flex-wrap: wrap;
+            gap: 6px; align-content: flex-start; justify-content: center; overflow-y: auto;
         }
-        .piece { cursor: grab; box-sizing: border-box; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.2); }
+        .piece { cursor: grab; box-sizing: border-box; box-shadow: 0 2px 5px rgba(0,0,0,0.5); }
     </style>
 </head>
 <body>
 
-    <!-- LOBBY CHI TIẾT -->
+    <!-- OVERLAY ĐỐI ĐẦU (VS LOBBY) -->
     <div class="lobby-overlay" id="lobby">
+        
+        <!-- FRAME AVATAR VS -->
+        <div class="vs-container">
+            <div class="player-card">
+                <div class="avatar-box" id="p1-avatar-box">
+                    <span id="p1-empty-icon">👤</span>
+                    <img id="p1-avatar-img" class="hidden" src="" alt="P1">
+                </div>
+                <div class="player-name p1-color" id="p1-name-display">Đang chờ...</div>
+            </div>
+
+            <div class="vs-logo">VS</div>
+
+            <div class="player-card">
+                <div class="avatar-box empty" id="p2-avatar-box">
+                    <span id="p2-empty-icon">👤</span>
+                    <img id="p2-avatar-img" class="hidden" src="" alt="P2">
+                </div>
+                <div class="player-name p2-color" id="p2-name-display">Đang chờ...</div>
+            </div>
+        </div>
+
+        <!-- FORM CÀI ĐẶT VÀ VÀO PHÒNG -->
         <div class="lobby-card">
-            <h2>⚔️ Thi Đấu Solo Online</h2>
-            
             <div id="step-join">
-                <div class="form-group" style="margin-bottom:10px;">
-                    <label>Tên người chơi:</label>
+                <div class="form-group" style="margin-bottom: 10px;">
+                    <label>Tên người chơi</label>
                     <input type="text" id="username" placeholder="Nhập tên...">
                 </div>
-                <div class="form-group" style="margin-bottom:15px;">
-                    <label>Mã Phòng (Room ID):</label>
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label>Mã Phòng (Room ID)</label>
                     <input type="text" id="room-id" placeholder="Ví dụ: solo123">
                 </div>
-                <button class="btn" style="width:100%;" id="btn-join">Vào Phòng</button>
+                <button class="btn" style="width: 100%;" id="btn-join">Vào Phòng Thi Đấu</button>
             </div>
 
-            <div id="room-status" style="font-size:13px; color:#555; text-align:center;"></div>
+            <div id="room-status" style="font-size: 13px; color: #94a3b8; text-align: center;"></div>
 
-            <!-- CHỦ PHÒNG CÀI ĐẶT THỂ THỨC -->
-            <div class="form-group hidden" id="host-bo-settings">
-                <label>Thể thức thi đấu:</label>
-                <select id="bo-select">
-                    <option value="1">BO1 (Chơi 1 Trận)</option>
-                    <option value="3" selected>BO3 (Thắng 2/3 Trận)</option>
-                    <option value="5">BO5 (Thắng 3/5 Trận)</option>
-                </select>
+            <!-- BẢNG CÀI ĐẶT PHÒNG THI ĐẤU (CHỈ HIỆN KHI VÀO PHÒNG) -->
+            <div id="room-settings" class="hidden" style="display: flex; flex-direction: column; gap: 10px;">
+                <div class="form-group">
+                    <label>Thể Thức Đấu</label>
+                    <select id="bo-select">
+                        <option value="1">BO1 (1 Trận Duy Nhất)</option>
+                        <option value="3" selected>BO3 (Thắng 2/3 Trận)</option>
+                        <option value="5">BO5 (Thắng 3/5 Trận)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Số Mảnh Cắt Puzzle</label>
+                    <select id="grid-select">
+                        <option value="3">3 x 3 (9 Mảnh - Dễ)</option>
+                        <option value="4" selected>4 x 4 (16 Mảnh - Thường)</option>
+                        <option value="5">5 x 5 (25 Mảnh - Khó)</option>
+                        <option value="6">6 x 6 (36 Mảnh - Siêu Khó)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Ảnh Gợi Ý Trong Bàn Cờ</label>
+                    <select id="hint-select">
+                        <option value="true" selected>Bật (Hiện ảnh mờ dưới lưới)</option>
+                        <option value="false">Tắt (Không hiện gợi ý)</option>
+                    </select>
+                </div>
             </div>
 
-            <!-- NÚT UPLOAD ÁNH KHI ĐẾN LƯỢT -->
+            <!-- NÚT UPLOAD ÁNH CỦA NGƯỜI CHỌN -->
             <div class="form-group hidden" id="picker-controls">
-                <label id="picker-label" style="color:#d9534f;"></label>
+                <label id="picker-label" style="color: #f59e0b;"></label>
                 <input type="file" id="image-input" accept="image/*">
-                <button class="btn" style="background:#28a745; margin-top:10px;" id="btn-submit-img">Xác Nhận Ảnh</button>
+                <button class="btn btn-green" style="margin-top: 8px;" id="btn-submit-img">Bắt Đầu Round</button>
             </div>
         </div>
     </div>
 
-    <!-- GAMEPLAY INTERFACE -->
+    <!-- MAIN GAMEPLAY -->
     <div class="app-container">
         <header>
             <div class="score-board">
-                <span class="p1-color" id="p1-score-txt">P1: 0 Ván</span>
-                <span style="color:#aaa;">-</span>
-                <span class="p2-color" id="p2-score-txt">P2: 0 Ván</span>
+                <span class="p1-color" id="p1-score-txt">P1: 0</span>
+                <span>-</span>
+                <span class="p2-color" id="p2-score-txt">P2: 0</span>
             </div>
-            <h3 id="round-info" style="color:#333;">ROUND 1</h3>
+            <h3 id="round-info" style="color: #f59e0b;">ROUND 1</h3>
             <div class="score-board">
                 <span class="p1-color" id="p1-prog">P1: 0%</span>
                 <span class="p2-color" id="p2-prog">P2: 0%</span>
@@ -127,8 +210,21 @@
         const btnJoin = document.getElementById('btn-join');
         const roomStatus = document.getElementById('room-status');
 
-        const hostBoSettings = document.getElementById('host-bo-settings');
+        const p1AvatarBox = document.getElementById('p1-avatar-box');
+        const p1AvatarImg = document.getElementById('p1-avatar-img');
+        const p1EmptyIcon = document.getElementById('p1-empty-icon');
+        const p1NameDisplay = document.getElementById('p1-name-display');
+
+        const p2AvatarBox = document.getElementById('p2-avatar-box');
+        const p2AvatarImg = document.getElementById('p2-avatar-img');
+        const p2EmptyIcon = document.getElementById('p2-empty-icon');
+        const p2NameDisplay = document.getElementById('p2-name-display');
+
+        const roomSettings = document.getElementById('room-settings');
         const boSelect = document.getElementById('bo-select');
+        const gridSelect = document.getElementById('grid-select');
+        const hintSelect = document.getElementById('hint-select');
+
         const pickerControls = document.getElementById('picker-controls');
         const pickerLabel = document.getElementById('picker-label');
         const imageInput = document.getElementById('image-input');
@@ -144,11 +240,11 @@
         const board = document.getElementById('board');
         const piecesPool = document.getElementById('pieces-pool');
 
-        // State
         let myUsername = '', currentRoomId = '', isHost = false, myIndex = -1;
         let selectedImageSrc = '', draggedPieceId = null, totalPiecesCount = 16;
+        let currentBoType = 3;
 
-        // 1. Tham Gia Phòng
+        // 1. Vào Phòng
         btnJoin.addEventListener('click', () => {
             myUsername = usernameIn.value.trim();
             currentRoomId = roomIdIn.value.trim();
@@ -158,40 +254,89 @@
             stepJoin.classList.add('hidden');
         });
 
-        boSelect.addEventListener('change', () => {
-            socket.emit('setBoType', { roomId: currentRoomId, boType: boSelect.value });
+        // Thay đổi Cài đặt phòng
+        [boSelect, gridSelect, hintSelect].forEach(elem => {
+            elem.addEventListener('change', sendRoomSettings);
         });
 
-        // Lắng nghe cập nhật phòng
-        socket.on('updatePlayers', (players) => {
+        function sendRoomSettings() {
+            if (isHost) {
+                socket.emit('updateRoomSettings', {
+                    roomId: currentRoomId,
+                    boType: boSelect.value,
+                    gridSize: gridSelect.value,
+                    showHint: hintSelect.value === 'true'
+                });
+            }
+        }
+
+        // Cập nhật Trạng thái Phòng & VS Bar
+        socket.on('updateRoomState', ({ players, boType, gridSize, showHint }) => {
             myIndex = players.findIndex(p => p.id === socket.id);
             isHost = (myIndex === 0);
-            roomStatus.innerText = `Đã vào phòng. Số người chơi: ${players.length}/2`;
-            if (isHost && players.length === 1) hostBoSettings.classList.remove('hidden');
+
+            // Cập nhật Avatar P1
+            if (players[0]) {
+                p1AvatarImg.src = players[0].avatar;
+                p1AvatarImg.classList.remove('hidden');
+                p1EmptyIcon.classList.add('hidden');
+                p1NameDisplay.innerText = players[0].username;
+            }
+
+            // Cập nhật Avatar P2
+            if (players[1]) {
+                p2AvatarImg.src = players[1].avatar;
+                p2AvatarImg.classList.remove('hidden');
+                p2EmptyIcon.classList.add('hidden');
+                p2AvatarBox.classList.remove('empty');
+                p2NameDisplay.innerText = players[1].username;
+            } else {
+                p2AvatarImg.classList.add('hidden');
+                p2EmptyIcon.classList.remove('hidden');
+                p2AvatarBox.classList.add('empty');
+                p2NameDisplay.innerText = "Đang chờ...";
+            }
+
+            // Cấu hình Bảng Cài Đặt
+            roomSettings.classList.remove('hidden');
+            boSelect.disabled = !isHost;
+            gridSelect.disabled = !isHost;
+            hintSelect.disabled = !isHost;
+
+            boSelect.value = boType;
+            gridSelect.value = gridSize;
+            hintSelect.value = showHint.toString();
+            currentBoType = boType;
+
+            if (players.length < 2) {
+                roomStatus.innerText = "⏳ Đang chờ người chơi thứ 2 vào phòng...";
+                pickerControls.classList.add('hidden');
+            } else {
+                roomStatus.innerText = "⚔️ Phòng đã đủ 2 người! Chuẩn bị chọn ảnh...";
+                checkTurnToPickImage(1, boType, players);
+            }
         });
 
-        socket.on('roomReady', ({ msg, players, boType }) => {
-            roomStatus.innerText = msg;
-            checkTurnToPickImage(1, boType, players);
+        socket.on('roomSettingsUpdated', ({ boType, gridSize, showHint }) => {
+            boSelect.value = boType;
+            gridSelect.value = gridSize;
+            hintSelect.value = showHint.toString();
+            currentBoType = boType;
         });
 
-        socket.on('boTypeUpdated', (boType) => {
-            roomStatus.innerText = `Chủ phòng đã chỉnh thể thức: BO${boType}`;
-        });
-
-        // 2. Logic Hiển Thị Chọn Ảnh Theo Round
+        // 2. Logic Chọn Ảnh
         function checkTurnToPickImage(round, boType, players) {
             pickerControls.classList.add('hidden');
             let pickerIndex = getPickerForRound(round, boType);
 
             if (pickerIndex === 'RANDOM') {
                 pickerControls.classList.remove('hidden');
-                pickerLabel.innerText = `🎲 Trận Quyết Định! CẢ 2 CÙNG CHỌN ÁNH (Server sẽ Random):`;
+                pickerLabel.innerText = `🎲 Round Quyết Định! CẢ 2 CHỌN ÁNH (Server sẽ Random):`;
             } else if (myIndex === pickerIndex) {
                 pickerControls.classList.remove('hidden');
                 pickerLabel.innerText = `📸 Lượt CỦA BẠN chọn ảnh cho Round ${round}:`;
             } else {
-                roomStatus.innerText = `⏳ Đang chờ ${players[pickerIndex].username} chọn ảnh cho Round ${round}...`;
+                roomStatus.innerText = `⏳ Đang chờ ${players[pickerIndex].username} chọn ảnh...`;
             }
         }
 
@@ -211,37 +356,38 @@
         });
 
         btnSubmitImg.addEventListener('click', () => {
-            if (!selectedImageSrc) return alert("Vui lòng chọn 1 ảnh!");
+            if (!selectedImageSrc) return alert("Vui lòng chọn 1 file ảnh!");
             socket.emit('submitImage', { roomId: currentRoomId, imageSrc: selectedImageSrc });
             pickerControls.classList.add('hidden');
-            roomStatus.innerText = "⏳ Đã tải ảnh lên! Đang đợi đồng bộ game...";
+            roomStatus.innerText = "⏳ Đã tải ảnh lên! Đang đợi đồng bộ trận đấu...";
         });
 
         socket.on('waitingForOtherImage', () => {
             roomStatus.innerText = "⏳ Đã nhận ảnh của bạn. Đang chờ đối thủ tải ảnh để Random...";
         });
 
-        // 3. Khởi tạo ván đấu
-        socket.on('gameStarted', ({ imageSrc, currentRound, scores, players }) => {
+        // 3. Khởi tạo Bàn Cờ Game
+        socket.on('gameStarted', ({ imageSrc, gridSize, showHint, currentRound, scores, players }) => {
             lobby.classList.add('hidden');
             roundInfo.innerText = `ROUND ${currentRound}`;
             updateScoreDisplay(scores, players);
-            initBoard(imageSrc);
+            initBoard(imageSrc, gridSize, showHint);
         });
 
         function updateScoreDisplay(scores, players) {
-            p1ScoreTxt.innerText = `${players[0].username}: ${scores[players[0].id] || 0} Ván`;
-            p2ScoreTxt.innerText = `${players[1] ? players[1].username : 'P2'}: ${scores[players[1] ? players[1].id : ''] || 0} Ván`;
+            p1ScoreTxt.innerText = `${players[0].username}: ${scores[players[0].id] || 0}`;
+            p2ScoreTxt.innerText = `${players[1] ? players[1].username : 'P2'}: ${scores[players[1] ? players[1].id : ''] || 0}`;
         }
 
-        function initBoard(imgSrc) {
+        function initBoard(imgSrc, size, showHint) {
             board.innerHTML = ''; piecesPool.innerHTML = '';
             p1Prog.innerText = "0%"; p2Prog.innerText = "0%";
+            totalPiecesCount = size * size;
 
             const img = new Image();
             img.onload = () => {
-                const cols = 4, rows = 4;
-                const maxW = boardWrapper.clientWidth - 10, maxH = boardWrapper.clientHeight - 10;
+                const cols = size, rows = size;
+                const maxW = boardWrapper.clientWidth - 20, maxH = boardWrapper.clientHeight - 20;
                 const aspectRatio = img.naturalWidth / img.naturalHeight;
 
                 let displayW = (maxW / maxH > aspectRatio) ? maxH * aspectRatio : maxW;
@@ -251,6 +397,14 @@
                 board.style.width = `${displayW}px`; board.style.height = `${displayH}px`;
                 board.style.gridTemplateColumns = `repeat(${cols}, ${pW}px)`;
                 board.style.gridTemplateRows = `repeat(${rows}, ${pH}px)`;
+
+                // Bật/Tắt Ảnh Gợi Ý dưới nền bàn cờ
+                if (showHint) {
+                    board.style.backgroundImage = `linear-gradient(rgba(15,23,42,0.75), rgba(15,23,42,0.75)), url(${imgSrc})`;
+                    board.style.backgroundSize = `${displayW}px ${displayH}px`;
+                } else {
+                    board.style.backgroundImage = 'none';
+                }
 
                 let pieces = [];
                 for (let r = 0; r < rows; r++) {
@@ -320,17 +474,17 @@
             else p2Prog.innerText = `Đối thủ: ${progress}%`;
         });
 
-        // 4. Kết Thúc Round / Match
-        socket.on('roundOver', ({ roundWinner, nextRound, scores, players, nextPickerIndex }) => {
-            alert(`🎉 ${roundWinner.toUpperCase()} đã thắng Round này!`);
+        // Kết thúc Round / Match
+        socket.on('roundOver', ({ roundWinner, nextRound, scores, players }) => {
+            alert(`🎉 ${roundWinner.toUpperCase()} đã chiến thắng Round này!`);
             selectedImageSrc = '';
             lobby.classList.remove('hidden');
             updateScoreDisplay(scores, players);
-            checkTurnToPickImage(nextRound, parseInt(boSelect.value), players);
+            checkTurnToPickImage(nextRound, currentBoType, players);
         });
 
         socket.on('matchOver', ({ winner, scores, players }) => {
-            alert(`🏆 CHÚC MỪNG ${winner.toUpperCase()} ĐÃ THẮNG CHUNG CUỘC TRẬN THI ĐẤU!`);
+            alert(`🏆 CHÚC MỪNG ${winner.toUpperCase()} ĐÃ THẮNG CHUNG CUỘC TRẬN ĐẤU!`);
             location.reload();
         });
     </script>
