@@ -5,7 +5,13 @@ const io = require('socket.io')(http);
 const fs = require('fs');
 const path = require('path');
 
-app.use(express.static(__dirname + '/public'));
+// Phục vụ tất cả file tĩnh từ thư mục public
+app.use(express.static(path.join(__dirname, 'public')));
+
+// Route mở trang Admin Dashboard
+app.get('/admin', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'admin.html'));
+});
 
 let rooms = {};
 let rankedQueue = null;
@@ -49,7 +55,7 @@ io.on('connection', (socket) => {
             io.to(roomId).emit('updateRoomState', {
                 roomId,
                 players: room.players,
-                boType: room.boType, // Khóa BO1 cho Rank
+                boType: room.boType,
                 gridSize: room.gridSize,
                 hintPieces: room.hintPieces,
                 showHint: room.showHint,
@@ -65,7 +71,7 @@ io.on('connection', (socket) => {
             const roomId = 'RANK_' + Math.random().toString(36).substring(2, 7).toUpperCase();
             rooms[roomId] = createRoomObject('ranked');
             const room = rooms[roomId];
-            room.boType = 1; // Khóa chắc chắn BO1 cho Đấu Rank
+            room.boType = 1;
 
             room.players.push({
                 id: socket.id,
@@ -299,16 +305,3 @@ function startRoundGame(roomId, imageSrc) {
 
 const PORT = process.env.PORT || 3000;
 http.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-<<<<<<< HEAD
-
-const path = require('path');
-
-// Phục vụ các file tĩnh trong thư mục public
-app.use(express.static(path.join(__dirname, 'public')));
-
-// Route riêng cho trang Admin
-app.get('/admin', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'admin.html'));
-});
-=======
->>>>>>> 788e6fe88338e178245e6749d1537637312d8a2c
