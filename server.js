@@ -311,3 +311,13 @@ function startRoundGame(roomId, imageSrc) {
 
 const PORT = process.env.PORT || 3000;
 http.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
+const path = require('path');
+
+// Phục vụ các file tĩnh trong thư mục public
+app.use(express.static(path.join(__dirname, 'public')));
+
+// Route riêng cho trang Admin
+app.get('/admin', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'admin.html'));
+});

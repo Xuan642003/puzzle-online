@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin Dashboard - Daily Quests (Firebase)</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #0f172a; color: #f8fafc; padding: 20px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .card { background: #1e293b; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #334155; }
+        input, select, button { padding: 10px; margin: 6px 0; width: 100%; box-sizing: border-box; border-radius: 4px; border: 1px solid #475569; background: #0f172a; color: #fff; }
+        button { background: #2563eb; font-weight: bold; cursor: pointer; border: none; }
+        button:hover { background: #1d4ed8; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { border: 1px solid #334155; padding: 10px; text-align: left; }
+        th { background: #0f172a; }
+        .btn-del { background: #ef4444; width: auto; padding: 6px 12px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>🔥 Admin Management (Firebase)</h2>
+
+        <!-- Form Thêm Nhiệm Vụ -->
+        <div class="card">
+            <h3>Thêm Nhiệm Vụ Hàng Ngày</h3>
+            <form id="questForm">
+                <input type="text" id="title" placeholder="Tên nhiệm vụ (VD: Chơi 3 trận Rank)" required>
+                <input type="text" id="desc" placeholder="Mô tả ngắn">
+                <select id="type">
+                    <option value="PLAY_RANK">Chơi trận Rank</option>
+                    <option value="WIN_SOLO">Thắng trận Solo</option>
+                    <option value="COMPLETE_PUZZLE">Ghép xong 1 bức tranh</option>
+                </select>
+                <input type="number" id="target" placeholder="Mục tiêu (VD: 3)" required>
+                <input type="number" id="rewardExp" placeholder="Điểm EXP thưởng (VD: 150)" required>
+                <button type="submit">➕ Thêm Nhiệm Vụ</button>
+            </form>
+        </div>
+
+        <!-- Danh sách Nhiệm Vụ Realtime -->
+        <div class="card">
+            <h3>Danh Sách Nhiệm Vụ Hiện Tại</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Tên & Mô tả</th>
+                        <th>Loại</th>
+                        <th>Cần đạt</th>
+                        <th>Thưởng</th>
+                        <th>Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody id="questList">
+                    <!-- Dữ liệu render tại đây -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Firebase SDK (Phiên bản Modular JS) -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getDatabase, ref, push, onValue, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+        // Cấu hình Firebase của dự án bạn
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_AUTH_DOMAIN",
+            databaseURL: "YOUR_DATABASE_URL",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_STORAGE_BUCKET",
+            messagingSenderId: "YOUR_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        const questsRef = ref(db, 'daily_quests');
+
+        // 1. Thêm nhiệm vụ mới vào Firebase Realtime Database
+        document.getElementById('questForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const newQuest = {
+                title: document.getElementById('title').value,
+                desc: document.getElementById('desc').value,
+                type: document.getElementById('type').value,
+                target: Number(document.getElementById('target').value),
+                rewardExp: Number(document.getElementById('rewardExp').value),
+                createdAt: Date.now()
+            };
+
+            push(questsRef, newQuest)
+                .then(() => {
+                    alert("Đã thêm nhiệm vụ thành công!");
+                    document.getElementById('questForm').reset();
+                })
+                .catch(err => alert("Lỗi: " + err.message));
+        });
+
+        // 2. Lắng nghe dữ liệu Realtime và hiển thị ra giao diện
+        onValue(questsRef, (snapshot) => {
+            const listEl = document.getElementById('questList');
+            listEl.innerHTML = '';
+            const data = snapshot.val();
+
+            if (!data) {
+                listEl.innerHTML = '<tr><td colspan="5" style="text-align:center;">Chưa có nhiệm vụ nào!</td></tr>';
+                return;
+            }
+
+            Object.keys(data).forEach(key => {
+                const q = data[key];
+                listEl.innerHTML += `
+                    <tr>
+                        <td><b>${q.title}</b><br><small color="#94a3b8">${q.desc || ''}</small></td>
+                        <td><code>${q.type}</code></td>
+                        <td>${q.target}</td>
+                        <td>+${q.rewardExp} EXP</td>
+                        <td><button class="btn-del" onclick="deleteQuest('${key}')">Xóa</button></td>
+                    </tr>
+                `;
+            });
+        });
+
+        // 3. Hàm Xóa nhiệm vụ
+        window.deleteQuest = function(questKey) {
+            if (confirm("Bạn có chắc muốn xóa nhiệm vụ này?")) {
+                remove(ref(db, `daily_quests/${questKey}`));
+            }
+        };
+    </script>
+</body>
+</html>
