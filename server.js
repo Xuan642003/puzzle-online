@@ -29,7 +29,7 @@ function getRandomPresetImage() {
 
 io.on('connection', (socket) => {
 
-    socket.on('findRankedMatch', ({ username, avatar, stars }) => {
+    socket.on('findRankedMatch', ({ username, avatar, totalPoints }) => {
         if (rankedQueue && rankedQueue.socketId !== socket.id && rooms[rankedQueue.roomId]) {
             const roomId = rankedQueue.roomId;
             const room = rooms[roomId];
@@ -38,7 +38,7 @@ io.on('connection', (socket) => {
                 id: socket.id,
                 username: username || 'Player 2',
                 avatar: avatar || '',
-                stars: stars || 0,
+                totalPoints: totalPoints || 0,
                 isHost: false
             });
             room.scores[socket.id] = 0;
@@ -71,7 +71,7 @@ io.on('connection', (socket) => {
                 id: socket.id,
                 username: username || 'Player 1',
                 avatar: avatar || '',
-                stars: stars || 0,
+                totalPoints: totalPoints || 0,
                 isHost: true
             });
             room.scores[socket.id] = 0;
