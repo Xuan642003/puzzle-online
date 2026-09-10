@@ -2,18 +2,21 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <title>Admin Dashboard - Daily Quests (Firebase)</title>
+    <title>Admin Dashboard - Daily Quests</title>
     <style>
-        body { font-family: Arial, sans-serif; background: #0f172a; color: #f8fafc; padding: 20px; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0f172a; color: #f8fafc; padding: 30px; margin: 0; }
         .container { max-width: 800px; margin: 0 auto; }
-        .card { background: #1e293b; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #334155; }
-        input, select, button { padding: 10px; margin: 6px 0; width: 100%; box-sizing: border-box; border-radius: 4px; border: 1px solid #475569; background: #0f172a; color: #fff; }
-        button { background: #2563eb; font-weight: bold; cursor: pointer; border: none; }
+        .card { background: #1e293b; padding: 24px; border-radius: 12px; margin-bottom: 24px; border: 1px solid #334155; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
+        h2, h3 { margin-top: 0; color: #f1f5f9; }
+        input, select, button { padding: 12px; margin: 8px 0; width: 100%; box-sizing: border-box; border-radius: 6px; border: 1px solid #475569; background: #0f172a; color: #fff; font-size: 14px; }
+        input:focus, select:focus { outline: none; border-color: #3b82f6; }
+        button { background: #2563eb; font-weight: bold; cursor: pointer; border: none; transition: background 0.2s; }
         button:hover { background: #1d4ed8; }
         table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-        th, td { border: 1px solid #334155; padding: 10px; text-align: left; }
-        th { background: #0f172a; }
-        .btn-del { background: #ef4444; width: auto; padding: 6px 12px; }
+        th, td { border: 1px solid #334155; padding: 12px; text-align: left; }
+        th { background: #0f172a; color: #94a3b8; }
+        .btn-del { background: #ef4444; width: auto; padding: 6px 12px; margin: 0; }
+        .btn-del:hover { background: #dc2626; }
     </style>
 </head>
 <body>
@@ -33,7 +36,7 @@
                 </select>
                 <input type="number" id="target" placeholder="Mục tiêu (VD: 3)" required>
                 <input type="number" id="rewardExp" placeholder="Điểm EXP thưởng (VD: 150)" required>
-                <button type="submit">➕ Thêm Nhiệm Vụ</button>
+                <button type="submit" id="submitBtn">➕ Thêm Nhiệm Vụ</button>
             </form>
         </div>
 
@@ -51,22 +54,22 @@
                     </tr>
                 </thead>
                 <tbody id="questList">
-                    <!-- Dữ liệu render tại đây -->
+                    <tr><td colspan="5" style="text-align:center;">Đang tải dữ liệu...</td></tr>
                 </tbody>
             </table>
         </div>
     </div>
 
-    <!-- Firebase SDK (Phiên bản Modular JS) -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getDatabase, ref, push, onValue, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+    <!-- Firebase App & Realtime Database SDKs (Compat/CDN Version) -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
 
-        // Cấu hình Firebase của dự án bạn
+    <script>
+        // Cấu hình Firebase
         const firebaseConfig = { 
         apiKey : "AIzaSyCpqwIbFqleWcid_7oE2GKbHJUCxhEGKDc" , 
         authDomain : "puzzle-online-auth.firebaseapp.com" , 
-        URL : "https://puzzle-online-auth-default-rtdb.asia-southeast1.firebasedatabase.app" , 
+        databaseURL : "https://puzzle-online-auth-default-rtdb.asia-southeast1.firebasedatabase.app" , 
         projectId : "puzzle-online-auth" , 
         storageBucket : "puzzle-online-auth.firebasestorage.app" , 
         messagingSenderId : "733126189884" , 
@@ -74,13 +77,19 @@
         measurementId : "G-90X4YDGY7C" 
         };
 
-        const app = initializeApp(firebaseConfig);
-        const db = getDatabase(app);
-        const questsRef = ref(db, 'daily_quests');
+        // Khởi tạo Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+        const questsRef = db.ref('daily_quests');
 
-        // 1. Thêm nhiệm vụ mới vào Firebase Realtime Database
-        document.getElementById('questForm').addEventListener('submit', (e) => {
+        // Thêm nhiệm vụ
+        document.getElementById('questForm').addEventListener('submit', function(e) {
             e.preventDefault();
+            
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.disabled = true;
+            submitBtn.innerText = "Đang xử lý...";
+
             const newQuest = {
                 title: document.getElementById('title').value,
                 desc: document.getElementById('desc').value,
@@ -90,22 +99,29 @@
                 createdAt: Date.now()
             };
 
-            push(questsRef, newQuest)
+            questsRef.push(newQuest)
                 .then(() => {
-                    alert("Đã thêm nhiệm vụ thành công!");
+                    alert("✅ Đã thêm nhiệm vụ thành công!");
                     document.getElementById('questForm').reset();
                 })
-                .catch(err => alert("Lỗi: " + err.message));
+                .catch((err) => {
+                    alert("❌ Lỗi: " + err.message);
+                    console.error(err);
+                })
+                .finally(() => {
+                    submitBtn.disabled = false;
+                    submitBtn.innerText = "➕ Thêm Nhiệm Vụ";
+                });
         });
 
-        // 2. Lắng nghe dữ liệu Realtime và hiển thị ra giao diện
-        onValue(questsRef, (snapshot) => {
+        // Lắng nghe dữ liệu realtime
+        questsRef.on('value', (snapshot) => {
             const listEl = document.getElementById('questList');
             listEl.innerHTML = '';
             const data = snapshot.val();
 
             if (!data) {
-                listEl.innerHTML = '<tr><td colspan="5" style="text-align:center;">Chưa có nhiệm vụ nào!</td></tr>';
+                listEl.innerHTML = '<tr><td colspan="5" style="text-align:center; color:#94a3b8;">Chưa có nhiệm vụ nào!</td></tr>';
                 return;
             }
 
@@ -113,7 +129,7 @@
                 const q = data[key];
                 listEl.innerHTML += `
                     <tr>
-                        <td><b>${q.title}</b><br><small color="#94a3b8">${q.desc || ''}</small></td>
+                        <td><b>${q.title}</b><br><small style="color:#94a3b8">${q.desc || ''}</small></td>
                         <td><code>${q.type}</code></td>
                         <td>${q.target}</td>
                         <td>+${q.rewardExp} EXP</td>
@@ -121,14 +137,17 @@
                     </tr>
                 `;
             });
+        }, (err) => {
+            console.error("Lỗi đọc Database:", err);
+            document.getElementById('questList').innerHTML = `<tr><td colspan="5" style="color:#ef4444; text-align:center;">Lỗi tải dữ liệu: ${err.message}</td></tr>`;
         });
 
-        // 3. Hàm Xóa nhiệm vụ
-        window.deleteQuest = function(questKey) {
+        // Xóa nhiệm vụ
+        function deleteQuest(questKey) {
             if (confirm("Bạn có chắc muốn xóa nhiệm vụ này?")) {
-                remove(ref(db, `daily_quests/${questKey}`));
+                db.ref(`daily_quests/${questKey}`).remove();
             }
-        };
+        }
     </script>
 </body>
 </html>
