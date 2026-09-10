@@ -289,24 +289,12 @@
                     </div>
 
                     <!-- NHIỆM VỤ HÀNG NGÀY -->
-                    <div class="quests-box">
-                        <div style="font-size: 12px; font-weight: bold; color: #38bdf8; text-transform: uppercase;">📜 Nhiệm Vụ Hàng Ngày</div>
-                        
-                        <div class="quest-item">
-                            <div>
-                                <div style="font-weight: bold;">Chơi 3 trận trong ngày</div>
-                                <div style="color: #94a3b8;" id="quest-1-prog">Tiến độ: 0/3</div>
-                            </div>
-                            <button class="btn btn-gold" style="padding: 4px 8px; font-size: 10px;" id="btn-claim-q1">Nhận 300 🪙</button>
-                        </div>
-
-                        <div class="quest-item">
-                            <div>
-                                <div style="font-weight: bold;">Chơi 5 trận trong ngày</div>
-                                <div style="color: #94a3b8;" id="quest-2-prog">Tiến độ: 0/5</div>
-                            </div>
-                            <button class="btn btn-gold" style="padding: 4px 8px; font-size: 10px;" id="btn-claim-q2">Nhận 500 🪙</button>
-                        </div>
+                <div class="quests-box">
+                    <div style="font-size: 12px; font-weight: bold; color: #38bdf8; text-transform: uppercase; margin-bottom: 8px;">📜 Nhiệm Vụ Hàng Ngày</div>
+                    
+                    <!-- Khung chứa động này sẽ tự động load nhiệm vụ từ Admin qua Firebase -->
+                    <div id="userQuestList">
+                        <div style="color: #94a3b8; font-size: 11px;">Đang tải danh sách nhiệm vụ...</div>
                     </div>
                 </div>
 
@@ -1195,5 +1183,81 @@
             location.reload();
         });
     </script>
+        <!-- Nhúng Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+
+    <script>
+        const firebaseConfig = { 
+            apiKey : "AIzaSyCpqwIbFqleWcid_7oE2GKbHJUCxhEGKDc" , 
+            authDomain : "puzzle-online-auth.firebaseapp.com" , 
+            databaseURL : "https://puzzle-online-auth-default-rtdb.asia-southeast1.firebasedatabase.app" , 
+            projectId : "puzzle-online-auth" , 
+            storageBucket : "puzzle-online-auth.firebasestorage.app" , 
+            messagingSenderId : "733126189884" , 
+            appId : "1:733126189884:web:b6c97174bc84e8478a7439" , 
+            measurementId : "G-90X4YDGY7C" 
+        };
+
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        const db = firebase.database();
+
+        // 2. Tải danh sách nhiệm vụ động
+        function loadUserDailyQuests() {
+            const questsRef = db.ref('daily_quests');
+
+            questsRef.on('value', (snapshot) => {
+                const questContainer = document.getElementById('userQuestList');
+                if (!questContainer) return;
+
+                questContainer.innerHTML = '';
+                const data = snapshot.val();
+
+                if (!data) {
+                    questContainer.innerHTML = '<div style="color: #94a3b8; font-size: 11px; text-align: center; padding: 8px;">Chưa có nhiệm vụ nào!</div>';
+                    return;
+                }
+
+                const userProgress = JSON.parse(localStorage.getItem('user_quest_progress') || '{}');
+
+                Object.keys(data).forEach(questId => {
+                    const q = data[questId];
+                    const currentProgress = userProgress[questId] || 0;
+                    const isCompleted = currentProgress >= q.target;
+                    const isClaimed = userProgress[questId + '_claimed'] || false;
+
+                    const questItem = document.createElement('div');
+                    questItem.className = 'quest-item';
+                    
+                    questItem.innerHTML = `
+                        <div>
+                            <div style="font-weight: bold;">${q.title}</div>
+                            <div style="color: #94a3b8; font-size: 11px;">Tiến độ: ${currentProgress}/${q.target}</div>
+                        </div>
+                        <div>
+                            ${isClaimed 
+                                ? `<button class="btn" style="padding: 4px 8px; font-size: 10px; background: #64748b; color: #fff; cursor: not-allowed;" disabled>ĐÃ NHẬN</button>` 
+                                : `<button class="btn btn-gold" style="padding: 4px 8px; font-size: 10px;" onclick="claimQuestReward('${questId}', ${q.rewardExp})">Nhận ${q.rewardExp} 🪙</button>`
+                            }
+                        </div>
+                    `;
+                    questContainer.appendChild(questItem);
+                });
+            });
+        }
+
+        function claimQuestReward(questId, reward) {
+            const userProgress = JSON.parse(localStorage.getItem('user_quest_progress') || '{}');
+            userProgress[questId + '_claimed'] = true;
+            localStorage.setItem('user_quest_progress', JSON.stringify(userProgress));
+            alert(`🎉 Bạn đã nhận thành công ${reward} 🪙!`);
+        }
+
+        document.addEventListener('DOMContentLoaded', loadUserDailyQuests);
+    </script>
+</body>
+</html>
 </body>
 </html>
