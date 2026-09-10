@@ -10,7 +10,6 @@ app.use(express.static(__dirname + '/public'));
 let rooms = {};
 let rankedQueue = null;
 
-// Hàm lấy danh sách ảnh ngẫu nhiên từ thư mục public/preset_images
 function getRandomPresetImage() {
     const dirPath = path.join(__dirname, 'public', 'preset_images');
     try {
@@ -25,14 +24,12 @@ function getRandomPresetImage() {
     } catch (err) {
         console.error("Lỗi đọc thư mục preset_images:", err);
     }
-    // Ảnh fallback nếu thư mục rỗng
     return 'https://picsum.photos/800/800';
 }
 
 io.on('connection', (socket) => {
 
-    // 1. Tìm hoặc Tạo phòng cho ĐÁNH HẠNG (Cố định BO1 + Random Ảnh Preset)
-    socket.on('findRankedMatch', ({ username, avatar, lp }) => {
+    socket.on('findRankedMatch', ({ username, avatar, totalPoints }) => {
         if (rankedQueue && rankedQueue.socketId !== socket.id && rooms[rankedQueue.roomId]) {
             const roomId = rankedQueue.roomId;
             const room = rooms[roomId];
@@ -41,7 +38,7 @@ io.on('connection', (socket) => {
                 id: socket.id,
                 username: username || 'Player 2',
                 avatar: avatar || '',
-                lp: lp || 0,
+                totalPoints: totalPoints || 0,
                 isHost: false
             });
             room.scores[socket.id] = 0;
@@ -52,14 +49,13 @@ io.on('connection', (socket) => {
             io.to(roomId).emit('updateRoomState', {
                 roomId,
                 players: room.players,
-                boType: room.boType,
+                boType: room.boType, // Khóa BO1 cho Rank
                 gridSize: room.gridSize,
                 hintPieces: room.hintPieces,
                 showHint: room.showHint,
                 mode: room.mode
             });
 
-            // Đấu Hạng -> Tự động bắt đầu ngay với ảnh Random Preset
             setTimeout(() => {
                 const randomImg = getRandomPresetImage();
                 startRoundGame(roomId, randomImg);
@@ -69,13 +65,13 @@ io.on('connection', (socket) => {
             const roomId = 'RANK_' + Math.random().toString(36).substring(2, 7).toUpperCase();
             rooms[roomId] = createRoomObject('ranked');
             const room = rooms[roomId];
-            room.boType = 1; // Cố định Rank là BO1
+            room.boType = 1; // Khóa chắc chắn BO1 cho Đấu Rank
 
             room.players.push({
                 id: socket.id,
                 username: username || 'Player 1',
                 avatar: avatar || '',
-                lp: lp || 0,
+                totalPoints: totalPoints || 0,
                 isHost: true
             });
             room.scores[socket.id] = 0;
@@ -95,7 +91,13 @@ io.on('connection', (socket) => {
         }
     });
 
-    // 2. Tạo/Vào phòng ĐÁNH THƯỜNG
+    socket.on('cancelFindMatch', () => {
+        if (rankedQueue && rankedQueue.socketId === socket.id) {
+            delete rooms[rankedQueue.roomId];
+            rankedQueue = null;
+        }
+    });
+
     socket.on('joinRoom', ({ roomId, username, avatar, mode }) => {
         if (!roomId) {
             roomId = 'ROOM_' + Math.random().toString(36).substring(2, 7).toUpperCase();
@@ -136,10 +138,9 @@ io.on('connection', (socket) => {
         });
     });
 
-    // 3. Cập nhật cài đặt phòng
     socket.on('updateRoomSettings', ({ roomId, boType, gridSize, hintPieces, showHint }) => {
         const room = rooms[roomId];
-        if (room) {
+        if (room && room.mode !== 'ranked') {
             room.boType = parseInt(boType) || 3;
             room.gridSize = parseInt(gridSize) || 4;
             room.hintPieces = parseInt(hintPieces) || 0;
@@ -157,7 +158,6 @@ io.on('connection', (socket) => {
         }
     });
 
-    // 4. Xử lý Nộp Ảnh
     socket.on('submitImage', ({ roomId, imageSrc }) => {
         const room = rooms[roomId];
         if (!room) return;
@@ -181,7 +181,6 @@ io.on('connection', (socket) => {
         }
     });
 
-    // 5. Đồng bộ Tiến độ
     socket.on('updateProgress', ({ roomId, placedPieces, totalPieces }) => {
         if (rooms[roomId]) {
             const player = rooms[roomId].players.find(p => p.id === socket.id);
@@ -196,7 +195,6 @@ io.on('connection', (socket) => {
         }
     });
 
-    // 6. Xử lý Thắng Ván (Sửa triệt để lỗi BO3)
     socket.on('playerWin', ({ roomId, username }) => {
         const room = rooms[roomId];
         if (!room || !room.isRoundActive) return;
@@ -231,7 +229,6 @@ io.on('connection', (socket) => {
         }
     });
 
-    // 7. Xử lý ngắt kết nối
     socket.on('disconnect', () => {
         if (rankedQueue && rankedQueue.socketId === socket.id) {
             rankedQueue = null;
@@ -266,7 +263,7 @@ function createRoomObject(mode) {
     return {
         mode: mode || 'normal',
         players: [],
-        boType: 3,
+        boType: mode === 'ranked' ? 1 : 3,
         gridSize: 4,
         hintPieces: 0,
         showHint: true,
@@ -279,18 +276,8 @@ function createRoomObject(mode) {
 
 function getPickerForRound(round, boType) {
     if (boType === 1) return 'RANDOM';
-    if (boType === 3) {
-        if (round === 1) return 0;
-        if (round === 2) return 1;
-        return 'RANDOM';
-    }
-    if (boType === 5) {
-        if (round === 1) return 0;
-        if (round === 2) return 1;
-        if (round === 3) return 0;
-        if (round === 4) return 1;
-        return 'RANDOM';
-    }
+    if (boType === 3) return round === 1 ? 0 : (round === 2 ? 1 : 'RANDOM');
+    if (boType === 5) return round % 2 !== 0 ? (round === 5 ? 'RANDOM' : 0) : 1;
 }
 
 function startRoundGame(roomId, imageSrc) {
@@ -305,12 +292,14 @@ function startRoundGame(roomId, imageSrc) {
         showHint: room.showHint,
         currentRound: room.currentRound,
         scores: room.scores,
-        players: room.players
+        players: room.players,
+        mode: room.mode
     });
 }
 
 const PORT = process.env.PORT || 3000;
 http.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+<<<<<<< HEAD
 
 const path = require('path');
 
@@ -321,3 +310,5 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.get('/admin', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'admin.html'));
 });
+=======
+>>>>>>> 788e6fe88338e178245e6749d1537637312d8a2c

@@ -3,49 +3,49 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Solo Xếp Hình Esports Arena</title>
+    <title>Solo Xếp Hình Esports Arena - MOBA Rank</title>
     <script src="/socket.io/socket.io.js"></script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
             width: 100vw; height: 100vh; overflow: hidden;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: #0b0f19; color: #fff; user-select: none;
+            background: #080c14; color: #fff; user-select: none;
         }
 
         .auth-overlay {
             position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-            background: rgba(11, 15, 25, 0.95);
+            background: rgba(8, 12, 20, 0.96);
             display: flex; flex-direction: column; justify-content: center; align-items: center;
             z-index: 1000; padding: 20px; overflow-y: auto;
         }
 
         .auth-card {
-            background: #1e293b; padding: 20px; border-radius: 16px; width: 100%; max-width: 420px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.6); border: 1px solid #334155;
+            background: #131b2e; padding: 24px; border-radius: 16px; width: 100%; max-width: 420px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.8); border: 1px solid #2a3859;
             display: flex; flex-direction: column; gap: 12px;
         }
         .auth-header { text-align: center; }
-        .auth-header h2 { font-size: 22px; color: #f59e0b; font-style: italic; text-transform: uppercase; }
+        .auth-header h2 { font-size: 22px; color: #fbbf24; font-style: italic; text-transform: uppercase; }
         .auth-header p { font-size: 12px; color: #94a3b8; }
 
         .form-group { display: flex; flex-direction: column; gap: 5px; }
         .form-group label { font-size: 11px; font-weight: bold; color: #94a3b8; text-transform: uppercase; }
         .form-group input, .form-group select {
-            padding: 9px; background: #0f172a; border: 1px solid #334155;
+            padding: 10px; background: #0a0f1d; border: 1px solid #2a3859;
             border-radius: 8px; color: #fff; font-size: 13px; outline: none;
         }
 
         .btn {
-            padding: 11px; background: #2563eb; color: white; border: none;
+            padding: 12px; background: #2563eb; color: white; border: none;
             border-radius: 8px; font-weight: bold; cursor: pointer; text-transform: uppercase;
             transition: 0.2s; font-size: 13px; text-align: center;
         }
         .btn:hover { background: #1d4ed8; }
         .btn-green { background: #16a34a; } .btn-green:hover { background: #15803d; }
         .btn-danger { background: #ef4444; } .btn-danger:hover { background: #dc2626; }
-        .btn-gold { background: linear-gradient(135deg, #f59e0b, #d97706); color: #000; }
-        .btn-gold:hover { filter: brightness(1.1); }
+        .btn-gold { background: linear-gradient(135deg, #fbbf24, #d97706); color: #000; }
+        .btn-gold:hover { filter: brightness(1.15); }
 
         .btn-google {
             background: #ffffff; color: #333; display: flex; align-items: center;
@@ -54,7 +54,7 @@
         .btn-google img { width: 18px; height: 18px; }
 
         .divider { display: flex; align-items: center; text-align: center; color: #64748b; font-size: 11px; }
-        .divider::before, .divider::after { content: ''; flex: 1; border-bottom: 1px solid #334155; }
+        .divider::before, .divider::after { content: ''; flex: 1; border-bottom: 1px solid #2a3859; }
         .divider::before { margin-right: .5em; } .divider::after { margin-left: .5em; }
 
         .hidden { display: none !important; }
@@ -65,64 +65,104 @@
 
         .top-bar {
             display: flex; justify-content: space-between; align-items: center;
-            background: #1e293b; padding: 12px 20px; border-radius: 12px; border: 1px solid #334155;
+            background: #131b2e; padding: 12px 20px; border-radius: 12px; border: 1px solid #2a3859;
         }
         .user-info { display: flex; align-items: center; gap: 12px; }
         .user-avatar-wrap { position: relative; width: 48px; height: 48px; }
         .user-avatar-wrap img { width: 100%; height: 100%; border-radius: 10px; border: 2px solid #3b82f6; object-fit: cover; }
         .user-lvl-badge {
-            position: absolute; bottom: -5px; right: -5px; background: #f59e0b; color: #000;
+            position: absolute; bottom: -5px; right: -5px; background: #fbbf24; color: #000;
             font-size: 10px; font-weight: bold; padding: 2px 5px; border-radius: 6px;
         }
 
         .currencies { display: flex; gap: 12px; align-items: center; }
         .currency-item {
-            display: flex; align-items: center; gap: 6px; background: #0f172a;
-            padding: 6px 12px; border-radius: 20px; border: 1px solid #334155; font-weight: bold; font-size: 13px;
+            display: flex; align-items: center; gap: 6px; background: #0a0f1d;
+            padding: 6px 12px; border-radius: 20px; border: 1px solid #2a3859; font-weight: bold; font-size: 13px;
         }
 
         .search-room-bar {
-            display: flex; gap: 10px; background: #1e293b; padding: 10px 15px;
-            border-radius: 12px; border: 1px solid #334155;
+            display: flex; gap: 10px; background: #131b2e; padding: 10px 15px;
+            border-radius: 12px; border: 1px solid #2a3859;
         }
-        .search-room-bar input { flex: 1; background: #0f172a; border: 1px solid #334155; border-radius: 8px; color: #fff; padding: 0 12px; }
+        .search-room-bar input { flex: 1; background: #0a0f1d; border: 1px solid #2a3859; border-radius: 8px; color: #fff; padding: 0 12px; }
 
         .lobby-grid { display: grid; grid-template-columns: 1fr 320px; gap: 12px; }
         .mode-selection { display: flex; flex-direction: column; gap: 10px; }
         .mode-card {
-            background: #1e293b; border: 2px solid #334155; border-radius: 14px; padding: 14px;
+            background: #131b2e; border: 2px solid #2a3859; border-radius: 14px; padding: 14px;
             display: flex; align-items: center; gap: 15px; cursor: pointer; transition: all 0.2s;
         }
         .mode-card:hover { border-color: #3b82f6; transform: translateX(4px); }
         .mode-icon { font-size: 32px; }
 
-        /* NHIỆM VỤ HÀNG NGÀY */
+        .rank-lobby-card {
+            background: radial-gradient(circle at center, #1e1b4b 0%, #080c14 100%);
+            border: 2px solid #fbbf24; border-radius: 20px; padding: 24px;
+            display: flex; flex-direction: column; align-items: center; gap: 15px;
+            position: relative; box-shadow: 0 0 50px rgba(251, 191, 36, 0.2);
+        }
+
+        .rank-badge-svg-wrap {
+            width: 140px; height: 140px;
+            filter: drop-shadow(0 0 20px rgba(251, 191, 36, 0.6));
+            animation: floatGlow 3s ease-in-out infinite alternate;
+        }
+        @keyframes floatGlow {
+            0% { transform: translateY(0) scale(1); }
+            100% { transform: translateY(-8px) scale(1.05); }
+        }
+
+        .rank-title-txt {
+            font-size: 28px; font-weight: 900; color: #fbbf24;
+            letter-spacing: 1px; text-shadow: 0 0 12px rgba(251, 191, 36, 0.6);
+        }
+        .rank-stars-box { display: flex; gap: 8px; font-size: 24px; color: #fbbf24; }
+        
+        .rank-progress-bar {
+            width: 100%; max-width: 320px; height: 16px; background: #020617;
+            border-radius: 10px; border: 1px solid #334155; overflow: hidden; position: relative;
+        }
+        .rank-progress-fill { height: 100%; background: linear-gradient(90deg, #3b82f6, #6366f1); width: 0%; transition: width 0.3s; }
+        .rank-progress-text { position: absolute; width: 100%; text-align: center; top: 0; font-size: 10px; font-weight: bold; line-height: 16px; color: #fff; }
+
+        .modal-rewards {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(0,0,0,0.85); display: flex; justify-content: center; align-items: center; z-index: 2000;
+        }
+        .rewards-card {
+            background: #131b2e; border: 2px solid #fbbf24; border-radius: 16px; padding: 20px;
+            width: 90%; max-width: 480px; display: flex; flex-direction: column; gap: 12px;
+        }
+        .reward-row {
+            display: flex; justify-content: space-between; align-items: center;
+            background: #0a0f1d; padding: 10px 14px; border-radius: 8px; border: 1px solid #2a3859;
+        }
+
         .quests-box {
-            background: #1e293b; border: 1px solid #334155; border-radius: 14px; padding: 12px;
+            background: #131b2e; border: 1px solid #2a3859; border-radius: 14px; padding: 12px;
             display: flex; flex-direction: column; gap: 8px;
         }
         .quest-item {
-            background: #0f172a; padding: 8px 10px; border-radius: 8px;
+            background: #0a0f1d; padding: 8px 10px; border-radius: 8px;
             display: flex; justify-content: space-between; align-items: center; font-size: 11px;
         }
 
-        /* LEADERBOARD */
         .leaderboard-box {
-            background: #1e293b; border: 1px solid #334155; border-radius: 14px; padding: 12px;
-            display: flex; flex-direction: column; gap: 8px; max-height: 220px; overflow-y: auto;
+            background: #131b2e; border: 1px solid #2a3859; border-radius: 14px; padding: 12px;
+            display: flex; flex-direction: column; gap: 8px; max-height: 240px; overflow-y: auto;
         }
-        .leaderboard-title { font-size: 12px; font-weight: bold; color: #f59e0b; text-transform: uppercase; text-align: center; }
+        .leaderboard-title { font-size: 12px; font-weight: bold; color: #fbbf24; text-transform: uppercase; text-align: center; }
         .lb-item {
             display: flex; align-items: center; justify-content: space-between;
-            background: #0f172a; padding: 6px 8px; border-radius: 8px; font-size: 11px;
+            background: #0a0f1d; padding: 6px 10px; border-radius: 8px; font-size: 11px;
         }
 
-        /* VS ROOM */
         .vs-container { display: flex; align-items: center; justify-content: center; gap: 20px; margin: 10px 0; }
         .player-card { display: flex; flex-direction: column; align-items: center; gap: 6px; width: 100px; }
         .avatar-box {
             width: 60px; height: 60px; border-radius: 12px; border: 3px solid #3b82f6;
-            background: #1e293b; display: flex; justify-content: center; align-items: center; overflow: hidden; font-size: 24px;
+            background: #131b2e; display: flex; justify-content: center; align-items: center; overflow: hidden; font-size: 24px;
         }
         .avatar-box img { width: 100%; height: 100%; object-fit: cover; }
         .avatar-box.empty { border-color: #64748b; color: #64748b; }
@@ -131,11 +171,12 @@
 
         .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
 
-        /* GAMEPLAY */
         .app-container { display: flex; flex-direction: column; width: 100vw; height: 100vh; padding: 12px; gap: 10px; }
+        
+        /* HEADER GAMEPLAY ĐÃ FIX CHUẨN XÓA KÝ TỰ THỪA */
         header {
             display: flex; justify-content: space-between; align-items: center;
-            background: #1e293b; padding: 10px 20px; border-radius: 10px; border: 1px solid #334155;
+            background: #131b2e; padding: 10px 20px; border-radius: 10px; border: 1px solid #2a3859;
         }
         .score-board { font-weight: bold; font-size: 15px; display: flex; gap: 12px; }
         .p1-color { color: #3b82f6; } .p2-color { color: #ef4444; }
@@ -144,13 +185,13 @@
         .board-wrapper { flex: 1; height: 100%; display: flex; justify-content: center; align-items: center; }
         
         #board {
-            display: grid; border: 2px solid #475569; background-color: #0f172a;
+            display: grid; border: 2px solid #475569; background-color: #0a0f1d;
             box-sizing: content-box; background-repeat: no-repeat; background-position: center;
         }
         .board-tile { box-sizing: border-box; border: 1px dashed rgba(255, 255, 255, 0.15); }
 
         #pieces-pool {
-            flex: 1; height: 100%; border: 2px dashed #334155; background-color: #1e293b;
+            flex: 1; height: 100%; border: 2px dashed #2a3859; background-color: #131b2e;
             border-radius: 10px; padding: 10px; display: flex; flex-wrap: wrap;
             gap: 6px; align-content: flex-start; justify-content: center; overflow-y: auto;
         }
@@ -167,7 +208,7 @@
             <div id="auth-form-container">
                 <div class="auth-header">
                     <h2 id="form-title">Đăng Nhập</h2>
-                    <p id="form-subtitle">Đăng nhập để lưu Cấp Độ, Vàng & Điểm Rank</p>
+                    <p id="form-subtitle">Lưu Cấp Độ, Vàng & Điểm Rank Chi Tiết</p>
                 </div>
 
                 <button class="btn btn-google" id="btn-google-login" style="margin-top: 10px;">
@@ -211,7 +252,7 @@
                     </div>
                     <div>
                         <h4 id="my-name">Player Name</h4>
-                        <span style="font-size: 12px; color: #38bdf8; font-weight: bold;" id="my-rank-txt">🏆 Đồng (0 LP)</span>
+                        <span style="font-size: 12px; color: #38bdf8; font-weight: bold;" id="my-rank-txt">🥉 Đồng IV (0 ⭐)</span>
                     </div>
                 </div>
 
@@ -228,7 +269,7 @@
                 <button class="btn btn-gold" id="btn-search-room">Vào Phòng</button>
             </div>
 
-            <!-- LOBBY GRID -->
+            <!-- LOBBY GRID CHÍNH -->
             <div class="lobby-grid" id="lobby-main-view">
                 <div class="mode-selection">
                     <div class="mode-card" id="btn-mode-normal">
@@ -239,11 +280,11 @@
                         </div>
                     </div>
 
-                    <div class="mode-card" id="btn-mode-ranked">
+                    <div class="mode-card" id="btn-open-rank-view">
                         <div class="mode-icon">🏆</div>
                         <div>
-                            <h3 style="color: #f59e0b; font-size: 15px;">ĐÁNH HẠNG (BO1 - Ảnh Ngẫu Nhiên)</h3>
-                            <p style="font-size: 11px; color: #94a3b8;">Ghép nhanh 1v1, tự động lấy ảnh có sẵn. Thắng +25 LP.</p>
+                            <h3 style="color: #fbbf24; font-size: 15px;">ĐẤU HẠNG MOBA MÙA GIẢI</h3>
+                            <p style="font-size: 11px; color: #94a3b8;">Hệ thống Rank chuẩn BO1: Thắng cộng sao, Thua có Tinh Túy bảo vệ.</p>
                         </div>
                     </div>
 
@@ -278,7 +319,31 @@
                 </div>
             </div>
 
-            <!-- DASHBOARD PHÒNG -->
+            <!-- GIAO DIỆN PHÒNG CHỜ RANK MOBA -->
+            <div class="hidden rank-lobby-card" id="rank-lobby-view">
+                <button class="btn btn-danger" style="position: absolute; top: 15px; left: 15px; padding: 5px 10px; font-size: 11px;" id="btn-back-from-rank">⬅️ Quay Lại</button>
+                <button class="btn btn-gold" style="position: absolute; top: 15px; right: 15px; padding: 5px 10px; font-size: 11px;" id="btn-open-rewards">🎁 Quy Tắc Rank</button>
+
+                <!-- SVG HUY HIỆU ĐỘNG -->
+                <div class="rank-badge-svg-wrap" id="rank-badge-svg-container"></div>
+
+                <div class="rank-title-txt" id="rank-name-display">ĐỒNG IV</div>
+                <div class="rank-stars-box" id="rank-stars-display">⭐⭐⭐</div>
+
+                <div id="rank-bravery-wrapper" style="width: 100%; display: flex; flex-direction: column; align-items: center; gap: 4px;">
+                    <div class="rank-progress-bar">
+                        <div class="rank-progress-fill" id="rank-bravery-bar"></div>
+                        <span class="rank-progress-text" id="rank-bravery-txt">Tinh túy: 0/200</span>
+                    </div>
+                    <span style="font-size: 10px; color: #94a3b8;" id="rank-sub-tip">(Nhận Tinh túy khi THUA. Đủ 200 sẽ tự động bảo vệ/bù 1 ⭐)</span>
+                </div>
+
+                <div style="display: flex; gap: 15px; width: 100%; max-width: 350px; margin-top: 10px;">
+                    <button class="btn btn-gold" style="flex: 1; padding: 14px; font-size: 15px;" id="btn-start-ranked-match">⚔️ BẮT ĐẦU TÌM TRẬN (BO1)</button>
+                </div>
+            </div>
+
+            <!-- DASHBOARD PHÒNG GAMEPLAY -->
             <div class="auth-card hidden" id="room-dashboard" style="max-width: 100%;">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                     <span id="room-id-badge" style="background: #3b82f6; color: #fff; font-size: 11px; font-weight: bold; padding: 4px 10px; border-radius: 12px;">MÃ PHÒNG: ...</span>
@@ -305,7 +370,7 @@
                     </div>
                 </div>
 
-                <div id="room-status" style="font-size: 12px; color: #f59e0b; text-align: center; font-weight: bold;"></div>
+                <div id="room-status" style="font-size: 12px; color: #fbbf24; text-align: center; font-weight: bold;"></div>
 
                 <div id="room-settings" class="settings-grid">
                     <div class="form-group">
@@ -337,9 +402,9 @@
                 </div>
 
                 <div class="form-group hidden" id="picker-controls" style="margin-top: 10px;">
-                    <label id="picker-label" style="color: #f59e0b; text-align: center; font-weight: bold;"></label>
+                    <label id="picker-label" style="color: #fbbf24; text-align: center; font-weight: bold;"></label>
                     <input type="file" id="image-input" accept="image/*">
-                    <button class="btn btn-green" style="margin-top: 6px;" id="btn-submit-img">Bắt Đầu Round</button>
+                    <button class="btn btn-green" style="margin-top: 6px;" id="btn-submit-img">Bắt Đầu Trận</button>
                 </div>
             </div>
 
@@ -347,15 +412,37 @@
 
     </div>
 
-    <!-- MAIN GAMEPLAY -->
+    <!-- MODAL QUY TẮC RANK -->
+    <div class="hidden modal-rewards" id="modal-rewards">
+        <div class="rewards-card">
+            <h3 style="color: #fbbf24; text-align: center;">📜 QUY TẮC BẬC RANK & TINH TÚY</h3>
+            <div style="display: flex; flex-direction: column; gap: 8px; max-height: 320px; overflow-y: auto; font-size: 12px; color: #cbd5e1;">
+                <div class="reward-row">
+                    <div><b>🥉 Đồng $\rightarrow$ 💎 Bạch Kim:</b><br><span style="font-size:10px; color:#94a3b8;">4 Bậc (IV-I), 3 ⭐/Bậc. Thua nhận Tinh Túy (+20 $\rightarrow$ +50). Đủ 200 Tinh Túy tự bù 1 ⭐ khi thua.</span></div>
+                </div>
+                <div class="reward-row">
+                    <div><b>🔷 Kim Cương & Siêu KC:</b><br><span style="font-size:10px; color:#94a3b8;">5 Bậc (V-I), 5 ⭐/Bậc. Không áp dụng Tinh Túy. Thắng +1⭐, Thua -1⭐.</span></div>
+                </div>
+                <div class="reward-row">
+                    <div><b>👑 Cao Thủ $\rightarrow$ Đại Cao Thủ:</b><br><span style="font-size:10px; color:#94a3b8;">Tính theo LP. Cần 100 LP để lên Đại Cao Thủ. Tỉ lệ thắng quyết định LP nhận.</span></div>
+                </div>
+                <div class="reward-row">
+                    <div><b>⚡ Thách Đấu & Siêu Thách Đấu:</b><br><span style="font-size:10px; color:#94a3b8;">&gt;100 LP lên Thách Đấu (Reset Ngày). &gt;300 LP lên Siêu Thách Đấu (Reset Tuần).</span></div>
+                </div>
+            </div>
+            <button class="btn" id="btn-close-rewards">Đóng</button>
+        </div>
+    </div>
+
+    <!-- MAIN GAMEPLAY (ĐÃ FIX SẠCH VÀ SỬA LỖI ROUND) -->
     <div class="app-container">
         <header>
-            <div class="score-board">
+            <div class="score-board" id="score-board-wrapper">
                 <span class="p1-color" id="p1-score-txt">P1: 0</span>
                 <span>-</span>
                 <span class="p2-color" id="p2-score-txt">P2: 0</span>
             </div>
-            <h3 id="round-info" style="color: #f59e0b;">ROUND 1</h3>
+            <h3 id="round-info" style="color: #fbbf24;">ROUND 1</h3>
             <div class="score-board">
                 <span class="p1-color" id="p1-prog">P1: 0%</span>
                 <span class="p2-color" id="p2-prog">P2: 0%</span>
@@ -370,7 +457,7 @@
         </main>
     </div>
 
-    <!-- FIREBASE & LOGIC -->
+    <!-- FIREBASE & LOGIC CHÍNH -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { 
@@ -403,29 +490,126 @@
         const authBox = document.getElementById('auth-box');
         const lobbyBox = document.getElementById('lobby-box');
         const lobbyMainView = document.getElementById('lobby-main-view');
+        const rankLobbyView = document.getElementById('rank-lobby-view');
         const roomDashboard = document.getElementById('room-dashboard');
+        const modalRewards = document.getElementById('modal-rewards');
 
-        // TOGGLE AUTH MODE
+        const RANK_COLORS = {
+            'Đồng': { primary: '#cd7f32', jewel: '#a52a2a', wing: '#e6a15c' },
+            'Bạc': { primary: '#cbd5e1', jewel: '#38bdf8', wing: '#f1f5f9' },
+            'Vàng': { primary: '#fbbf24', jewel: '#ef4444', wing: '#fef08a' },
+            'Bạch Kim': { primary: '#38bdf8', jewel: '#a855f7', wing: '#bae6fd' },
+            'Kim Cương': { primary: '#818cf8', jewel: '#ec4899', wing: '#c7d2fe' },
+            'Siêu Kim Cương': { primary: '#c084fc', jewel: '#06b6d4', wing: '#e9d5ff' },
+            'Cao Thủ': { primary: '#f43f5e', jewel: '#fbbf24', wing: '#fecdd3' },
+            'Đại Cao Thủ': { primary: '#e11d48', jewel: '#f97316', wing: '#fda4af' },
+            'Thách Đấu': { primary: '#38bdf8', jewel: '#f59e0b', wing: '#ffffff' },
+            'Siêu Thách Đấu': { primary: '#fbbf24', jewel: '#8b5cf6', wing: '#ffffff' }
+        };
+
+        const ROMAN_NUMS_4 = ['IV', 'III', 'II', 'I'];
+        const ROMAN_NUMS_5 = ['V', 'IV', 'III', 'II', 'I'];
+
+        function calculateRankDetails(totalPoints) {
+            let pts = Math.max(0, totalPoints || 0);
+
+            const lowTierRanks = ['Đồng', 'Bạc', 'Vàng', 'Bạch Kim'];
+            const totalLowStars = 4 * 4 * 3;
+
+            if (pts < totalLowStars) {
+                const rankIdx = Math.floor(pts / 12);
+                const subIdx = Math.floor((pts % 12) / 3);
+                const stars = pts % 3;
+
+                return {
+                    group: 'tier',
+                    title: `${lowTierRanks[rankIdx]} ${ROMAN_NUMS_4[subIdx]}`,
+                    baseRank: lowTierRanks[rankIdx],
+                    stars: stars,
+                    maxStars: 3,
+                    braveryEligible: true,
+                    braveryGainOnLoss: (rankIdx + 2) * 10
+                };
+            }
+
+            pts -= totalLowStars;
+
+            const midTierRanks = ['Kim Cương', 'Siêu Kim Cương'];
+            const totalMidStars = 2 * 5 * 5;
+
+            if (pts < totalMidStars) {
+                const rankIdx = Math.floor(pts / 25);
+                const subIdx = Math.floor((pts % 25) / 5);
+                const stars = pts % 5;
+
+                return {
+                    group: 'tier',
+                    title: `${midTierRanks[rankIdx]} ${ROMAN_NUMS_5[subIdx]}`,
+                    baseRank: midTierRanks[rankIdx],
+                    stars: stars,
+                    maxStars: 5,
+                    braveryEligible: false
+                };
+            }
+
+            pts -= totalMidStars;
+
+            const lp = pts;
+            if (lp < 100) {
+                return { group: 'lp', title: 'Cao Thủ', baseRank: 'Cao Thủ', lp: lp, braveryEligible: false };
+            } else if (lp < 300) {
+                return { group: 'lp', title: 'Đại Cao Thủ', baseRank: 'Đại Cao Thủ', lp: lp, braveryEligible: false };
+            } else if (lp < 500) {
+                return { group: 'lp', title: 'Thách Đấu', baseRank: 'Thách Đấu', lp: lp, braveryEligible: false };
+            } else {
+                return { group: 'lp', title: 'Siêu Thách Đấu', baseRank: 'Siêu Thách Đấu', lp: lp, braveryEligible: false };
+            }
+        }
+
+        function generateRankSVG(baseRank) {
+            const theme = RANK_COLORS[baseRank] || RANK_COLORS['Đồng'];
+            return `
+                <svg viewBox="0 0 200 200" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <linearGradient id="goldFrame" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stop-color="#fef08a" />
+                            <stop offset="50%" stop-color="${theme.primary}" />
+                            <stop offset="100%" stop-color="#78350f" />
+                        </linearGradient>
+                        <linearGradient id="jewelGlow" x1="0%" y1="0%" x2="0%" y2="100%">
+                            <stop offset="0%" stop-color="#ffffff" />
+                            <stop offset="100%" stop-color="${theme.jewel}" />
+                        </linearGradient>
+                        <filter id="glow">
+                            <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+                            <feMerge>
+                                <feMergeNode in="coloredBlur"/>
+                                <feMergeNode in="SourceGraphic"/>
+                            </feMerge>
+                        </filter>
+                    </defs>
+                    <g filter="url(#glow)">
+                        <path d="M 40,80 Q 10,40 50,20 Q 35,55 60,75 Z" fill="${theme.wing}" />
+                        <path d="M 30,95 Q 0,65 40,45 Q 25,75 50,90 Z" fill="${theme.wing}" opacity="0.8" />
+                        <path d="M 160,80 Q 190,40 150,20 Q 165,55 140,75 Z" fill="${theme.wing}" />
+                        <path d="M 170,95 Q 200,65 160,45 Q 175,75 150,90 Z" fill="${theme.wing}" opacity="0.8" />
+                    </g>
+                    <path d="M 100,25 L 150,55 L 140,130 L 100,175 L 60,130 L 50,55 Z" 
+                          fill="url(#goldFrame)" stroke="#fff" stroke-width="2" filter="url(#glow)" />
+                    <path d="M 100,35 L 140,62 L 132,124 L 100,162 L 68,124 L 60,62 Z" 
+                          fill="#0f172a" />
+                    <polygon points="100,60 122,95 100,135 78,95" fill="url(#jewelGlow)" filter="url(#glow)" />
+                    <polygon points="100,10 108,28 92,28" fill="#fef08a" />
+                </svg>
+            `;
+        }
+
         document.getElementById('toggle-link').addEventListener('click', () => {
             isSignUp = !isSignUp;
             document.getElementById('form-title').innerText = isSignUp ? "Đăng Ký" : "Đăng Nhập";
             document.getElementById('btn-auth-submit').innerText = isSignUp ? "Tạo Tài Khoản" : "Đăng Nhập";
             document.getElementById('name-group').style.display = isSignUp ? "flex" : "none";
         });
-
-        // HỆ THỐNG 10 CAP RANK
-        function getRankDetails(lp) {
-            if (lp < 100) return { title: '🥉 Đồng', level: 1, reqLp: 0 };
-            if (lp < 300) return { title: '🥈 Bạc', level: 2, reqLp: 100 };
-            if (lp < 600) return { title: '🥇 Vàng', level: 3, reqLp: 300 };
-            if (lp < 1000) return { title: '💎 Bạch Kim', level: 4, reqLp: 600 };
-            if (lp < 1500) return { title: '🔷 Kim Cương', level: 5, reqLp: 1000 };
-            if (lp < 2100) return { title: '💠 Siêu Kim Cương', level: 6, reqLp: 1500 };
-            if (lp < 2800) return { title: '👑 Cao Thủ', level: 7, reqLp: 2100 };
-            if (lp < 3600) return { title: '🔥 Đại Cao Thủ', level: 8, reqLp: 2800 };
-            if (lp < 4500) return { title: '⚡ Thách Đấu', level: 9, reqLp: 3600 };
-            return { title: '🌟 Siêu Thách Đấu', level: 10, reqLp: 4500 };
-        }
 
         async function saveUserToDatabase(user, customName = null) {
             const userRef = doc(db, "users", user.uid);
@@ -438,7 +622,9 @@
                     email: user.email,
                     displayName: customName || user.displayName || user.email.split('@')[0],
                     photoURL: user.photoURL || `https://api.dicebear.com/7.x/bottts/svg?seed=${user.uid}`,
-                    level: 1, gold: 1000, gems: 50, lp: 0, highestRankLevel: 1,
+                    level: 1, gold: 1000, gems: 50, 
+                    totalPoints: 0,
+                    bravery: 0,
                     dailyMatches: 0, lastDailyReset: todayStr,
                     claimedQ1: false, claimedQ2: false,
                     createdAt: serverTimestamp(), lastLogin: serverTimestamp()
@@ -446,7 +632,6 @@
                 await setDoc(userRef, userProfileData);
             } else {
                 userProfileData = userSnap.data();
-                // Reset nhiệm vụ nếu sang ngày mới
                 if (userProfileData.lastDailyReset !== todayStr) {
                     userProfileData.dailyMatches = 0;
                     userProfileData.claimedQ1 = false;
@@ -462,16 +647,43 @@
 
         function updateLobbyUI() {
             if (!userProfileData) return;
-            const rank = getRankDetails(userProfileData.lp || 0);
+            const rank = calculateRankDetails(userProfileData.totalPoints || 0);
 
             document.getElementById('my-avatar-img').src = userProfileData.photoURL;
             document.getElementById('my-name').innerText = userProfileData.displayName;
             document.getElementById('my-level').innerText = `Lv.${userProfileData.level || 1}`;
             document.getElementById('my-gold').innerText = (userProfileData.gold || 0).toLocaleString();
             document.getElementById('my-gems').innerText = (userProfileData.gems || 0).toLocaleString();
-            document.getElementById('my-rank-txt').innerText = `${rank.title} (${userProfileData.lp || 0} LP)`;
+            
+            if (rank.group === 'tier') {
+                document.getElementById('my-rank-txt').innerText = `🏆 ${rank.title} (${rank.stars} ⭐)`;
+            } else {
+                document.getElementById('my-rank-txt').innerText = `🏆 ${rank.title} (${rank.lp} LP)`;
+            }
 
-            // Cập nhật giao diện nhiệm vụ
+            document.getElementById('rank-badge-svg-container').innerHTML = generateRankSVG(rank.baseRank);
+            document.getElementById('rank-name-display').innerText = rank.title.toUpperCase();
+
+            if (rank.group === 'tier') {
+                let starsStr = '';
+                for (let i = 0; i < rank.stars; i++) starsStr += '⭐';
+                for (let i = rank.stars; i < rank.maxStars; i++) starsStr += '☆';
+                document.getElementById('rank-stars-display').innerText = starsStr;
+            } else {
+                document.getElementById('rank-stars-display').innerText = `🔥 ${rank.lp} LP`;
+            }
+
+            const braveryWrapper = document.getElementById('rank-bravery-wrapper');
+            if (rank.braveryEligible) {
+                braveryWrapper.style.display = 'flex';
+                const bravery = userProfileData.bravery || 0;
+                document.getElementById('rank-bravery-txt').innerText = `Tinh túy: ${bravery}/200`;
+                document.getElementById('rank-bravery-bar').style.width = `${Math.min((bravery / 200) * 100, 100)}%`;
+                document.getElementById('rank-sub-tip').innerText = `(Nhận +${rank.braveryGainOnLoss} Tinh túy khi THUA. Đủ 200 sẽ tự động bảo vệ/bù 1 ⭐)`;
+            } else {
+                braveryWrapper.style.display = 'none';
+            }
+
             const dMatches = userProfileData.dailyMatches || 0;
             document.getElementById('quest-1-prog').innerText = `Tiến độ: ${Math.min(dMatches, 3)}/3`;
             document.getElementById('quest-2-prog').innerText = `Tiến độ: ${Math.min(dMatches, 5)}/5`;
@@ -481,18 +693,31 @@
 
             if (userProfileData.claimedQ1) {
                 btnQ1.innerText = "Đã nhận"; btnQ1.disabled = true;
-            } else {
-                btnQ1.disabled = dMatches < 3;
-            }
+            } else { btnQ1.disabled = dMatches < 3; }
 
             if (userProfileData.claimedQ2) {
                 btnQ2.innerText = "Đã nhận"; btnQ2.disabled = true;
-            } else {
-                btnQ2.disabled = dMatches < 5;
-            }
+            } else { btnQ2.disabled = dMatches < 5; }
         }
 
-        // XỬ LÝ NHẬN NHIỆM VỤ
+        document.getElementById('btn-open-rank-view').addEventListener('click', () => {
+            lobbyMainView.classList.add('hidden');
+            rankLobbyView.classList.remove('hidden');
+        });
+
+        document.getElementById('btn-back-from-rank').addEventListener('click', () => {
+            rankLobbyView.classList.add('hidden');
+            lobbyMainView.classList.remove('hidden');
+        });
+
+        document.getElementById('btn-open-rewards').addEventListener('click', () => {
+            modalRewards.classList.remove('hidden');
+        });
+
+        document.getElementById('btn-close-rewards').addEventListener('click', () => {
+            modalRewards.classList.add('hidden');
+        });
+
         document.getElementById('btn-claim-q1').addEventListener('click', async () => {
             if (userProfileData.dailyMatches >= 3 && !userProfileData.claimedQ1) {
                 userProfileData.gold = (userProfileData.gold || 0) + 300;
@@ -513,34 +738,32 @@
             }
         });
 
-        // LOAD LEADERBOARD
         async function loadLeaderboard() {
             const lbList = document.getElementById('leaderboard-list');
             try {
-                const q = query(collection(db, "users"), orderBy("lp", "desc"), limit(5));
+                const q = query(collection(db, "users"), orderBy("totalPoints", "desc"), limit(5));
                 const querySnapshot = await getDocs(q);
 
                 lbList.innerHTML = '';
-                let rank = 1;
+                let rankPos = 1;
                 querySnapshot.forEach((docSnap) => {
                     const data = docSnap.data();
-                    const rankInfo = getRankDetails(data.lp || 0);
+                    const rankInfo = calculateRankDetails(data.totalPoints || 0);
                     const item = document.createElement('div');
                     item.className = 'lb-item';
                     item.innerHTML = `
-                        <span style="font-weight:bold; color:#f59e0b;">#${rank}</span>
+                        <span style="font-weight:bold; color:#fbbf24;">#${rankPos}</span>
                         <span style="flex:1; margin:0 6px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${data.displayName}</span>
                         <span style="font-weight:bold; color:#38bdf8;">${rankInfo.title}</span>
                     `;
                     lbList.appendChild(item);
-                    rank++;
+                    rankPos++;
                 });
             } catch (err) {
                 lbList.innerHTML = '<div style="font-size:11px; color:#ef4444; text-align:center;">Lỗi tải BXH</div>';
             }
         }
 
-        // AUTH HANDLERS
         document.getElementById('btn-google-login').addEventListener('click', async () => {
             try {
                 const result = await signInWithPopup(auth, googleProvider);
@@ -581,11 +804,11 @@
             }
         });
 
-        // ================= SOCKET.IO & GAMEPLAY =================
+        // SOCKET GAME LOGIC
         const socket = io();
 
         const btnModeNormal = document.getElementById('btn-mode-normal');
-        const btnModeRanked = document.getElementById('btn-mode-ranked');
+        const btnStartRankedMatch = document.getElementById('btn-start-ranked-match');
         const btnSearchRoom = document.getElementById('btn-search-room');
         const searchRoomInput = document.getElementById('search-room-input');
         const btnLeaveRoom = document.getElementById('btn-leave-room');
@@ -627,7 +850,6 @@
         let selectedImageSrc = '', draggedPieceId = null, totalPiecesCount = 16;
         let currentBoType = 3;
 
-        // Bắt đầu Normal
         btnModeNormal.addEventListener('click', () => {
             socket.emit('joinRoom', {
                 roomId: '',
@@ -637,16 +859,16 @@
             });
         });
 
-        // Bắt đầu Ranked (BO1)
-        btnModeRanked.addEventListener('click', () => {
+        btnStartRankedMatch.addEventListener('click', () => {
             socket.emit('findRankedMatch', {
                 username: userProfileData.displayName,
                 avatar: userProfileData.photoURL,
-                lp: userProfileData.lp || 0
+                totalPoints: userProfileData.totalPoints || 0
             });
+            btnStartRankedMatch.disabled = true;
+            btnStartRankedMatch.innerText = "⏳ ĐANG GHÉP ĐỐI THỦ CÙNG HẠNG...";
         });
 
-        // Search Room
         btnSearchRoom.addEventListener('click', () => {
             const code = searchRoomInput.value.trim();
             if (!code) return alert("Vui lòng nhập Mã Phòng!");
@@ -658,7 +880,10 @@
             });
         });
 
-        btnLeaveRoom.addEventListener('click', () => location.reload());
+        btnLeaveRoom.addEventListener('click', () => {
+            socket.emit('cancelFindMatch');
+            location.reload();
+        });
 
         function sendSettingsUpdate() {
             if (isHost && currentRoomId) {
@@ -683,8 +908,9 @@
             isHost = (myIndex === 0);
 
             lobbyMainView.classList.add('hidden');
+            rankLobbyView.classList.add('hidden');
             roomDashboard.classList.remove('hidden');
-            roomIdBadge.innerText = `MÃ PHÒNG: ${roomId} (${mode === 'ranked' ? 'ĐÁNH HẠNG - BO1' : 'ĐÁNH THƯỜNG'})`;
+            roomIdBadge.innerText = `MÃ PHÒNG: ${roomId} (${mode === 'ranked' ? 'ĐÁNH HẠNG MOBA (BO1)' : 'ĐÁNH THƯỜNG'})`;
 
             if (players[0]) {
                 p1AvatarImg.src = players[0].avatar;
@@ -723,11 +949,11 @@
             currentBoType = boType;
 
             if (players.length < 2) {
-                roomStatus.innerText = "⏳ Đang chờ đối thủ gia nhập phòng...";
+                roomStatus.innerText = "⏳ Đang ghép đối thủ thi đấu...";
                 pickerControls.classList.add('hidden');
             } else {
                 if (mode === 'ranked') {
-                    roomStatus.innerText = "⚔️ Đã tìm thấy đối thủ! Đang tải trận đấu...";
+                    roomStatus.innerText = "⚔️ Đã ghép đối thủ thành công! Chuẩn bị...";
                 } else {
                     roomStatus.innerText = "⚔️ Đối thủ đã sẵn sàng! Chuẩn bị chọn ảnh...";
                     checkTurnToPickImage(1, boType, players);
@@ -774,10 +1000,21 @@
             roomStatus.innerText = "⏳ Đã tải ảnh lên! Đang chờ bắt đầu...";
         });
 
-        socket.on('gameStarted', ({ imageSrc, gridSize, hintPieces, showHint, currentRound, scores, players }) => {
+        // XỬ LÝ KHỞI TẠO TRẬN ĐẤU (ẨN ROUND NẾU ĐÁNH RANK)
+        socket.on('gameStarted', ({ imageSrc, gridSize, hintPieces, showHint, currentRound, scores, players, mode }) => {
             document.getElementById('overlay').classList.add('hidden');
-            roundInfo.innerText = `ROUND ${currentRound}`;
-            updateScoreDisplay(scores, players);
+            
+            // Xử lý ẩn Round nếu là chế độ Rank BO1
+            if (mode === 'ranked') {
+                roundInfo.classList.add('hidden');
+                document.getElementById('score-board-wrapper').classList.add('hidden');
+            } else {
+                roundInfo.classList.remove('hidden');
+                document.getElementById('score-board-wrapper').classList.remove('hidden');
+                roundInfo.innerText = `ROUND ${currentRound}`;
+                updateScoreDisplay(scores, players);
+            }
+
             initBoard(imageSrc, gridSize, hintPieces, showHint);
         });
 
@@ -806,7 +1043,7 @@
                 board.style.gridTemplateRows = `repeat(${rows}, ${pH}px)`;
 
                 if (showHint) {
-                    board.style.backgroundImage = `linear-gradient(rgba(15,23,42,0.75), rgba(15,23,42,0.75)), url(${imgSrc})`;
+                    board.style.backgroundImage = `linear-gradient(rgba(10,15,29,0.75), rgba(10,15,29,0.75)), url(${imgSrc})`;
                     board.style.backgroundSize = `${displayW}px ${displayH}px`;
                 } else {
                     board.style.backgroundImage = 'none';
@@ -905,29 +1142,44 @@
             const isIWin = (winner === userProfileData.displayName);
             let rewardMsg = "";
 
-            // Tăng số trận đã chơi trong ngày
             userProfileData.dailyMatches = (userProfileData.dailyMatches || 0) + 1;
 
             if (mode === 'ranked') {
-                const oldRank = getRankDetails(userProfileData.lp || 0);
+                const currentRank = calculateRankDetails(userProfileData.totalPoints || 0);
 
                 if (isIWin) {
                     userProfileData.gold = (userProfileData.gold || 0) + 200;
-                    userProfileData.lp = (userProfileData.lp || 0) + 25;
-                    rewardMsg = `\n🎁 Thắng Rank: +200 Vàng, +25 LP`;
+
+                    if (currentRank.group === 'tier') {
+                        userProfileData.totalPoints = (userProfileData.totalPoints || 0) + 1;
+                        rewardMsg = `\n🎁 Thắng Rank: +1 ⭐ và +200 Vàng!`;
+                    } else {
+                        const gainLP = Math.floor(Math.random() * 8) + 18;
+                        userProfileData.totalPoints = (userProfileData.totalPoints || 0) + gainLP;
+                        rewardMsg = `\n🎁 Thắng Rank: +${gainLP} LP và +200 Vàng!`;
+                    }
                 } else {
-                    userProfileData.lp = Math.max(0, (userProfileData.lp || 0) - 15);
-                    rewardMsg = `\n📉 Thua Rank: -15 LP`;
-                }
+                    if (currentRank.group === 'tier') {
+                        if (currentRank.braveryEligible) {
+                            let currBravery = (userProfileData.bravery || 0);
 
-                const newRank = getRankDetails(userProfileData.lp || 0);
-
-                // Thưởng Kim Cương khi lên cấp Rank mới
-                if (newRank.level > (userProfileData.highestRankLevel || 1)) {
-                    const gemBonus = (newRank.level - userProfileData.highestRankLevel) * 50;
-                    userProfileData.gems = (userProfileData.gems || 0) + gemBonus;
-                    userProfileData.highestRankLevel = newRank.level;
-                    rewardMsg += `\n💎 CHÚC MỪNG LÊN RANK ${newRank.title}! Thưởng: +${gemBonus} Kim Cương!`;
+                            if (currBravery >= 200) {
+                                userProfileData.bravery -= 200;
+                                rewardMsg = `\n🛡️ THUA TRẬN: Kích hoạt 200 Tinh Túy bảo vệ, KHÔNG BỊ TRỪ SAO!`;
+                            } else {
+                                userProfileData.totalPoints = Math.max(0, (userProfileData.totalPoints || 0) - 1);
+                                userProfileData.bravery = currBravery + currentRank.braveryGainOnLoss;
+                                rewardMsg = `\n📉 THUA TRẬN: -1 ⭐. Nhận +${currentRank.braveryGainOnLoss} Tinh Túy!`;
+                            }
+                        } else {
+                            userProfileData.totalPoints = Math.max(0, (userProfileData.totalPoints || 0) - 1);
+                            rewardMsg = `\n📉 THUA TRẬN: -1 ⭐.`;
+                        }
+                    } else {
+                        const lossLP = Math.floor(Math.random() * 6) + 12;
+                        userProfileData.totalPoints = Math.max(0, (userProfileData.totalPoints || 0) - lossLP);
+                        rewardMsg = `\n📉 THUA TRẬN: -${lossLP} LP.`;
+                    }
                 }
             } else {
                 if (isIWin) {
