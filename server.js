@@ -6,61 +6,58 @@ const io = require('socket.io')(http);
 app.use(express.static(__dirname + '/public'));
 
 let rooms = {};
+let rankedQueue = null; // Hàng chờ Matchmaking Rank
 
 io.on('connection', (socket) => {
-    // 1. Vào phòng
-    socket.on('joinRoom', ({ roomId, username, avatar, mode }) => {
-        socket.join(roomId);
 
-        if (!rooms[roomId]) {
-            rooms[roomId] = {
-                mode: mode || 'normal',
-                players: [],
-                boType: 3,           // Mặc định BO3
-                gridSize: 4,         // Mặc định 4x4
-                hintPieces: 0,       // Mặc định 0 mảnh đúng sẵn
-                showHint: true,      // Mặc định Bật ảnh gợi ý
-                currentRound: 1,     // Round hiện tại
-                uploadedImages: {},  // Lưu ảnh nhận được ở round quyết định
-                scores: {},          // Tỉ số thắng
-                isRoundActive: false
-            };
-        }
-
-        const room = rooms[roomId];
-        
-        // Thêm người chơi mới
-        if (room.players.length < 2) {
-            room.players.push({ 
-                id: socket.id, 
-                username: username || 'Player', 
-                avatar: avatar || '', 
-                isHost: room.players.length === 0 
+    // 1. Tìm hoặc Tạo phòng tự động cho Đánh Hạng (Matchmaking)
+    socket.on('findRankedMatch', ({ username, avatar, lp }) => {
+        if (rankedQueue && rankedQueue.socketId !== socket.id && rooms[rankedQueue.roomId]) {
+            // Ghép đối thủ vào phòng đang chờ
+            const roomId = rankedQueue.roomId;
+            const room = rooms[roomId];
+            
+            room.players.push({
+                id: socket.id,
+                username: username || 'Player 2',
+                avatar: avatar || '',
+                lp: lp || 0,
+                isHost: false
             });
             room.scores[socket.id] = 0;
-        }
+            socket.join(roomId);
 
-        // Phát thông tin phòng cập nhật cho các người chơi trong phòng
-        io.to(roomId).emit('updateRoomState', {
-            players: room.players,
-            boType: room.boType,
-            gridSize: room.gridSize,
-            hintPieces: room.hintPieces,
-            showHint: room.showHint,
-            mode: room.mode
-        });
-    });
-
-    // 2. Chủ phòng cập nhật cài đặt (BO, Kích thước lưới, Số mảnh gợi ý, Ảnh nền)
-    socket.on('updateRoomSettings', ({ roomId, boType, gridSize, hintPieces, showHint }) => {
-        const room = rooms[roomId];
-        if (room) {
-            room.boType = parseInt(boType) || 3;
-            room.gridSize = parseInt(gridSize) || 4;
-            room.hintPieces = parseInt(hintPieces) || 0;
-            room.showHint = (showHint === true || showHint === 'true');
+            rankedQueue = null; // Xóa khỏi hàng chờ
 
             io.to(roomId).emit('updateRoomState', {
+                roomId,
+                players: room.players,
+                boType: room.boType,
+                gridSize: room.gridSize,
+                hintPieces: room.hintPieces,
+                showHint: room.showHint,
+                mode: room.mode
+            });
+        } else {
+            // Tạo phòng Rank mới và đưa vào Hàng chờ
+            const roomId = 'RANK_' + Math.random().toString(36).substring(2, 7).toUpperCase();
+            rooms[roomId] = createRoomObject('ranked');
+            const room = rooms[roomId];
+
+            room.players.push({
+                id: socket.id,
+                username: username || 'Player 1',
+                avatar: avatar || '',
+                lp: lp || 0,
+                isHost: true
+            });
+            room.scores[socket.id] = 0;
+            socket.join(roomId);
+
+            rankedQueue = { socketId: socket.id, roomId };
+
+            socket.emit('updateRoomState', {
+                roomId,
                 players: room.players,
                 boType: room.boType,
                 gridSize: room.gridSize,
@@ -71,7 +68,70 @@ io.on('connection', (socket) => {
         }
     });
 
-    // 3. Xử lý logic Picker từng ván & Nhận ảnh
+    // 2. Vào / Tạo phòng cụ thể (Sử dụng cho Đánh Thường & Tìm Mã Phòng)
+    socket.on('joinRoom', ({ roomId, username, avatar, mode }) => {
+        // Tự sinh mã nếu không truyền mã
+        if (!roomId) {
+            roomId = 'ROOM_' + Math.random().toString(36).substring(2, 7).toUpperCase();
+        }
+
+        socket.join(roomId);
+
+        if (!rooms[roomId]) {
+            rooms[roomId] = createRoomObject(mode || 'normal');
+        }
+
+        const room = rooms[roomId];
+        
+        if (room.players.length < 2) {
+            const isAlreadyIn = room.players.some(p => p.id === socket.id);
+            if (!isAlreadyIn) {
+                room.players.push({ 
+                    id: socket.id, 
+                    username: username || 'Player', 
+                    avatar: avatar || '', 
+                    isHost: room.players.length === 0 
+                });
+                room.scores[socket.id] = 0;
+            }
+        } else {
+            socket.emit('roomFull', { msg: 'Phòng đã đầy!' });
+            return;
+        }
+
+        io.to(roomId).emit('updateRoomState', {
+            roomId,
+            players: room.players,
+            boType: room.boType,
+            gridSize: room.gridSize,
+            hintPieces: room.hintPieces,
+            showHint: room.showHint,
+            mode: room.mode
+        });
+    });
+
+    // 3. Cập nhật Cài Đặt Phòng (Chủ phòng)
+    socket.on('updateRoomSettings', ({ roomId, boType, gridSize, hintPieces, showHint }) => {
+        const room = rooms[roomId];
+        if (room) {
+            room.boType = parseInt(boType) || 3;
+            room.gridSize = parseInt(gridSize) || 4;
+            room.hintPieces = parseInt(hintPieces) || 0;
+            room.showHint = (showHint === true || showHint === 'true');
+
+            io.to(roomId).emit('updateRoomState', {
+                roomId,
+                players: room.players,
+                boType: room.boType,
+                gridSize: room.gridSize,
+                hintPieces: room.hintPieces,
+                showHint: room.showHint,
+                mode: room.mode
+            });
+        }
+    });
+
+    // 4. Xử lý Nộp Ảnh
     socket.on('submitImage', ({ roomId, imageSrc }) => {
         const room = rooms[roomId];
         if (!room) return;
@@ -79,19 +139,15 @@ io.on('connection', (socket) => {
         const round = room.currentRound;
         const pickerIndex = getPickerForRound(round, room.boType);
 
-        // Trường hợp Pick cố định (P1 hoặc P2)
         if (pickerIndex === 0 || pickerIndex === 1) {
             startRoundGame(roomId, imageSrc);
-        } 
-        // Trường hợp Random (Trận quyết định / tie-breaker)
-        else if (pickerIndex === 'RANDOM') {
+        } else if (pickerIndex === 'RANDOM') {
             room.uploadedImages[socket.id] = imageSrc;
 
-            // Nếu cả 2 đã upload ảnh xong
             if (Object.keys(room.uploadedImages).length === 2) {
                 const imgArray = Object.values(room.uploadedImages);
                 const selectedImg = imgArray[Math.floor(Math.random() * imgArray.length)];
-                room.uploadedImages = {}; // Reset kho ảnh tạm
+                room.uploadedImages = {};
                 startRoundGame(roomId, selectedImg);
             } else {
                 socket.emit('waitingForOtherImage');
@@ -99,7 +155,7 @@ io.on('connection', (socket) => {
         }
     });
 
-    // 4. Đồng bộ tiến độ kéo hình
+    // 5. Cập nhật tiến độ ghép
     socket.on('updateProgress', ({ roomId, placedPieces, totalPieces }) => {
         if (rooms[roomId]) {
             const player = rooms[roomId].players.find(p => p.id === socket.id);
@@ -114,7 +170,7 @@ io.on('connection', (socket) => {
         }
     });
 
-    // 5. Xử lý Thắng Ván
+    // 6. Thắng ván
     socket.on('playerWin', ({ roomId, username }) => {
         const room = rooms[roomId];
         if (!room || !room.isRoundActive) return;
@@ -126,14 +182,13 @@ io.on('connection', (socket) => {
         const p1Score = room.scores[room.players[0].id] || 0;
         const p2Score = room.players[1] ? (room.scores[room.players[1].id] || 0) : 0;
 
-        // Kiểm tra xem đã ai thắng Series chưa
         if (p1Score >= maxWins || p2Score >= maxWins) {
             io.to(roomId).emit('matchOver', {
                 winner: username,
                 scores: room.scores,
                 players: room.players
             });
-            delete rooms[roomId]; // Xóa phòng sau khi hoàn thành series
+            delete rooms[roomId];
         } else {
             room.currentRound++;
             io.to(roomId).emit('roundOver', {
@@ -146,8 +201,12 @@ io.on('connection', (socket) => {
         }
     });
 
-    // 6. Xử lý khi ngắt kết nối
+    // 7. Xử lý ngắt kết nối
     socket.on('disconnect', () => {
+        if (rankedQueue && rankedQueue.socketId === socket.id) {
+            rankedQueue = null;
+        }
+
         for (let roomId in rooms) {
             const room = rooms[roomId];
             room.players = room.players.filter(p => p.id !== socket.id);
@@ -157,6 +216,7 @@ io.on('connection', (socket) => {
                 delete rooms[roomId];
             } else {
                 io.to(roomId).emit('updateRoomState', {
+                    roomId,
                     players: room.players,
                     boType: room.boType,
                     gridSize: room.gridSize,
@@ -169,24 +229,37 @@ io.on('connection', (socket) => {
     });
 });
 
-// Hàm xác định ai có quyền chọn ảnh theo Round
+function createRoomObject(mode) {
+    return {
+        mode: mode || 'normal',
+        players: [],
+        boType: 3,
+        gridSize: 4,
+        hintPieces: 0,
+        showHint: true,
+        currentRound: 1,
+        uploadedImages: {},
+        scores: {},
+        isRoundActive: false
+    };
+}
+
 function getPickerForRound(round, boType) {
     if (boType === 1) return 'RANDOM';
     if (boType === 3) {
-        if (round === 1) return 0; // Host (P1)
-        if (round === 2) return 1; // Đối thủ (P2)
-        return 'RANDOM';           // Round 3
+        if (round === 1) return 0;
+        if (round === 2) return 1;
+        return 'RANDOM';
     }
     if (boType === 5) {
         if (round === 1) return 0;
         if (round === 2) return 1;
         if (round === 3) return 0;
         if (round === 4) return 1;
-        return 'RANDOM';           // Round 5
+        return 'RANDOM';
     }
 }
 
-// Hàm khởi tạo bắt đầu 1 ván đấu
 function startRoundGame(roomId, imageSrc) {
     const room = rooms[roomId];
     if (!room) return;
