@@ -49,7 +49,7 @@ io.on('connection', (socket) => {
             io.to(roomId).emit('updateRoomState', {
                 roomId,
                 players: room.players,
-                boType: room.boType,
+                boType: room.boType, // Khóa BO1 cho Rank
                 gridSize: room.gridSize,
                 hintPieces: room.hintPieces,
                 showHint: room.showHint,
@@ -65,7 +65,7 @@ io.on('connection', (socket) => {
             const roomId = 'RANK_' + Math.random().toString(36).substring(2, 7).toUpperCase();
             rooms[roomId] = createRoomObject('ranked');
             const room = rooms[roomId];
-            room.boType = 1;
+            room.boType = 1; // Khóa chắc chắn BO1 cho Đấu Rank
 
             room.players.push({
                 id: socket.id,
@@ -140,7 +140,7 @@ io.on('connection', (socket) => {
 
     socket.on('updateRoomSettings', ({ roomId, boType, gridSize, hintPieces, showHint }) => {
         const room = rooms[roomId];
-        if (room) {
+        if (room && room.mode !== 'ranked') {
             room.boType = parseInt(boType) || 3;
             room.gridSize = parseInt(gridSize) || 4;
             room.hintPieces = parseInt(hintPieces) || 0;
@@ -263,7 +263,7 @@ function createRoomObject(mode) {
     return {
         mode: mode || 'normal',
         players: [],
-        boType: 3,
+        boType: mode === 'ranked' ? 1 : 3,
         gridSize: 4,
         hintPieces: 0,
         showHint: true,
@@ -292,7 +292,8 @@ function startRoundGame(roomId, imageSrc) {
         showHint: room.showHint,
         currentRound: room.currentRound,
         scores: room.scores,
-        players: room.players
+        players: room.players,
+        mode: room.mode
     });
 }
 
