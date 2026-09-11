@@ -163,7 +163,6 @@
         }
         .modal-close:hover { color: #fff; }
 
-        /* RANK UP ANIMATION MODAL */
         .rankup-card {
             background: radial-gradient(circle, #2e1065 0%, #090514 100%);
             border: 2px solid #fbbf24; box-shadow: 0 0 50px rgba(251, 191, 36, 0.5);
@@ -174,7 +173,6 @@
             100% { transform: scale(1); opacity: 1; }
         }
 
-        /* SIDEBAR RIGHT (BXH & LỊCH SỬ ĐẤU) */
         .right-sidebar { display: flex; flex-direction: column; gap: 12px; }
         
         .leaderboard-box, .history-box {
@@ -256,14 +254,14 @@
 </head>
 <body>
 
-    <!-- CONTAINER CỬA SỔ NỔI THÔNG BÁO (TOAST) -->
+    <!-- CONTAINER TOAST NOTIFICATION -->
     <div id="toast-container"></div>
 
     <!-- OVERLAY AUTH & LOBBY -->
     <div class="auth-overlay" id="overlay">
         
-        <!-- FORM AUTH -->
-        <div class="auth-card" id="auth-box">
+        <!-- FORM AUTH (MẶC ĐỊNH MỞ CLASS HIDDEN ĐỂ TRÁNH FLASH UI LOGIN) -->
+        <div class="auth-card hidden" id="auth-box">
             <div id="auth-form-container">
                 <div class="auth-header">
                     <h2 id="form-title">Đăng Nhập</h2>
@@ -470,7 +468,7 @@
 
     </div>
 
-    <!-- POPUP 1: QUY TẮC RANK (FIX LỖI CLICK) -->
+    <!-- POPUP 1: QUY TẮC RANK -->
     <div class="modal-overlay hidden" id="rules-modal">
         <div class="modal-card">
             <span class="modal-close" id="close-rules-modal">&times;</span>
@@ -501,7 +499,7 @@
         </div>
     </div>
 
-    <!-- POPUP 3: CHÚC MỪNG LÊN RANK (LÊN HẠNG) -->
+    <!-- POPUP 3: CHÚC MỪNG LÊN RANK -->
     <div class="modal-overlay hidden" id="rankup-modal">
         <div class="modal-card rankup-card">
             <h2 style="color: #fbbf24; font-size: 26px; text-transform: uppercase; font-style: italic; letter-spacing: 2px;">🎉 CHÚC MỪNG THĂNG HẠNG! 🎉</h2>
@@ -569,7 +567,6 @@
         let userProfileData = null;
         let isSignUp = false;
 
-        // DANH SÁCH MẶC ĐỊNH PHẦN THƯỞNG RANK
         const DEFAULT_RANK_REWARDS = {
             'Đồng': { gold: 300, gems: 10 },
             'Bạc': { gold: 500, gems: 20 },
@@ -585,14 +582,12 @@
 
         let configuredRankRewards = { ...DEFAULT_RANK_REWARDS };
 
-        // DANH SÁCH NHIỆM VỤ MẶC ĐỊNH
         const DEFAULT_QUESTS = [
             { id: 'q_rank_1', title: 'Chơi 1 trận rank', target: 1, reward: 150 },
             { id: 'q_rank_3', title: 'Chơi 3 trận rank', target: 3, reward: 200 },
             { id: 'q_win_1', title: 'Thắng 1 trận', target: 1, reward: 150 }
         ];
 
-        // HÀM HIỂN THỊ THÔNG BÁO NỔI TOAST
         window.showToast = function(message, type = 'success') {
             const container = document.getElementById('toast-container');
             const toast = document.createElement('div');
@@ -782,7 +777,6 @@
             }
         }
 
-        // HÀM HIỂN THỊ DANH SÁCH PHẦN THƯỞNG RANK
         function renderRankRewardsList() {
             const container = document.getElementById('rank-rewards-list');
             if (!container || !userProfileData) return;
@@ -794,8 +788,6 @@
             rankKeys.forEach(baseRank => {
                 const reward = configuredRankRewards[baseRank];
                 const isClaimed = userProfileData.claimedRankRewards?.includes(baseRank);
-                
-                // Kiểm tra xem người dùng đã từng đạt rank này chưa
                 const isReached = isUserReachedRank(baseRank, currentRank.baseRank);
 
                 const div = document.createElement('div');
@@ -852,7 +844,6 @@
             }
         }
 
-        // HÀM HIỂN THỊ DANH SÁCH NHIỆM VỤ
         function renderUserQuests() {
             const container = document.getElementById('userQuestList');
             if (!container || !userProfileData) return;
@@ -888,7 +879,6 @@
             });
         }
 
-        // NHẬN THƯỞNG NHIỆM VỤ
         async function claimQuestReward(questId, reward) {
             try {
                 userProfileData.gold = (userProfileData.gold || 0) + reward;
@@ -908,7 +898,6 @@
             }
         }
 
-        // HIỂN THỊ LỊCH SỬ ĐẤU
         function renderMatchHistory() {
             const container = document.getElementById('history-list');
             if (!container || !userProfileData) return;
@@ -930,7 +919,6 @@
             `).join('');
         }
 
-        // CẬP NHẬT TIẾN TRÌNH NHIỆM VỤ SAU TRẬN
         async function updateQuestProgress(isRank, isWin) {
             if (!userProfileData) return;
 
@@ -991,7 +979,6 @@
             lobbyMainView.classList.remove('hidden');
         });
 
-        // FIX LỖI CLICK QUY TẮC RANK KHÔNG HIỆN GÌ
         const rulesModal = document.getElementById('rules-modal');
         document.getElementById('btn-open-rules').addEventListener('click', () => {
             rulesModal.classList.remove('hidden');
@@ -999,7 +986,6 @@
         document.getElementById('close-rules-modal').addEventListener('click', () => rulesModal.classList.add('hidden'));
         document.getElementById('btn-close-rules-btn').addEventListener('click', () => rulesModal.classList.add('hidden'));
 
-        // CLICK MỞ POPUP QUÀ RANK
         const rewardsModal = document.getElementById('rewards-modal');
         document.getElementById('btn-open-rank-rewards').addEventListener('click', () => {
             renderRankRewardsList();
@@ -1007,7 +993,6 @@
         });
         document.getElementById('close-rewards-modal').addEventListener('click', () => rewardsModal.classList.add('hidden'));
 
-        // ĐÓNG POPUP LÊN RANK
         const rankupModal = document.getElementById('rankup-modal');
         document.getElementById('btn-claim-rankup').addEventListener('click', () => {
             rankupModal.classList.add('hidden');
@@ -1041,6 +1026,7 @@
 
         document.getElementById('btn-logout').addEventListener('click', () => signOut(auth));
 
+        // XỬ LÝ AUTH STATE CHANGED KHÔNG BỊ FLASH LOGIN UI
         onAuthStateChanged(auth, async (user) => {
             currentUser = user;
             if (user) {
@@ -1048,8 +1034,8 @@
                 lobbyBox.classList.remove('hidden');
                 await saveUserToDatabase(user);
             } else {
-                authBox.classList.remove('hidden');
                 lobbyBox.classList.add('hidden');
+                authBox.classList.remove('hidden');
             }
         });
 
@@ -1128,9 +1114,20 @@
             });
         });
 
+        // XỬ LÝ NÚT RỜI PHÒNG: KHÔNG RELOAD TRANG ĐỂ TRÁNH MẤT STATE / FLASH LOGIN
         btnLeaveRoom.addEventListener('click', () => {
             socket.emit('cancelFindMatch');
-            location.reload();
+            
+            // Xóa thông tin phòng cũ và trở về màn hình Lobby
+            currentRoomId = '';
+            roomDashboard.classList.add('hidden');
+            rankLobbyView.classList.add('hidden');
+            lobbyMainView.classList.remove('hidden');
+            document.getElementById('overlay').classList.remove('hidden');
+
+            // Reset trạng thái nút tìm trận
+            btnStartRankedMatch.disabled = false;
+            btnStartRankedMatch.innerText = "⚔️ BẮT ĐẦU TÌM TRẬN (BO1)";
         });
 
         socket.on('updateRoomState', ({ roomId, players, boType, gridSize, hintPieces, showHint, mode }) => {
@@ -1367,7 +1364,6 @@
 
             const oldRank = calculateRankDetails(userProfileData.totalPoints || 0);
 
-            // 1. CẬP NHẬT LỊCH SỬ ĐẤU
             const newMatchRecord = {
                 mode: mode,
                 isWin: isIWin,
@@ -1376,10 +1372,8 @@
             userProfileData.matchHistory = userProfileData.matchHistory || [];
             userProfileData.matchHistory.push(newMatchRecord);
 
-            // 2. CẬP NHẬT TIẾN TRÌNH NHIỆM VỤ
             await updateQuestProgress(isRankMode, isIWin);
 
-            // 3. TÍNH ĐIỂM RANK / VÀNG
             if (isRankMode) {
                 if (isIWin) {
                     userProfileData.gold = (userProfileData.gold || 0) + 200;
@@ -1413,24 +1407,20 @@
 
             const newRank = calculateRankDetails(userProfileData.totalPoints || 0);
 
-            // TRƯỜNG HỢP LÊN RANK TRONG BẬC HOẶC BẬC MỚI
             let isRankUp = (newRank.title !== oldRank.title) && (userProfileData.totalPoints > (userProfileData.highestPoints || 0));
             userProfileData.highestPoints = Math.max(userProfileData.totalPoints || 0, userProfileData.highestPoints || 0);
 
-            // LƯU CƠ SỞ DỮ LIỆU FIRESTORE
             const userRef = doc(db, "users", currentUser.uid);
             await setDoc(userRef, userProfileData, { merge: true });
 
             document.getElementById('overlay').classList.remove('hidden');
 
             if (isRankUp) {
-                // KIỂM TRA PHẦN THƯỞNG LÊN RANK BẬC MỚI
                 let rewardGold = 200, rewardGems = 10;
                 if (newRank.baseRank !== oldRank.baseRank && configuredRankRewards[newRank.baseRank]) {
                     rewardGold = configuredRankRewards[newRank.baseRank].gold;
                     rewardGems = configuredRankRewards[newRank.baseRank].gems;
                     
-                    // TỰ ĐỘNG THÊM VÀO TÀI KHOẢN VÀ ĐÁNH DẤU ĐÃ NHẬN
                     userProfileData.gold = (userProfileData.gold || 0) + rewardGold;
                     userProfileData.gems = (userProfileData.gems || 0) + rewardGems;
                     userProfileData.claimedRankRewards = userProfileData.claimedRankRewards || [];
@@ -1445,7 +1435,6 @@
                     });
                 }
 
-                // HIỂN THỊ POPUP LÊN RANK CHÚC MỪNG
                 document.getElementById('rankup-svg-wrap').innerHTML = generateRankSVG(newRank.baseRank);
                 document.getElementById('rankup-title').innerText = newRank.title.toUpperCase();
                 document.getElementById('rankup-reward-txt').innerText = `🪙 +${rewardGold} Vàng | 💎 +${rewardGems} Kim Cương`;

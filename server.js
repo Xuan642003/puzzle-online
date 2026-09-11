@@ -5,7 +5,7 @@ const io = require('socket.io')(http);
 const fs = require('fs');
 const path = require('path');
 
-// Phục vụ tất cả file tĩnh từ thư mục public
+// Phục vụ các file tĩnh trong thư mục public
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Route mở trang Admin Dashboard
