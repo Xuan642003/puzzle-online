@@ -5,18 +5,21 @@
     <title>Admin Management</title>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0f172a; color: #f8fafc; padding: 30px; margin: 0; }
-        .container { max-width: 800px; margin: 0 auto; }
+        .container { max-width: 900px; margin: 0 auto; }
         .card { background: #1e293b; padding: 24px; border-radius: 12px; margin-bottom: 24px; border: 1px solid #334155; }
         h2, h3 { margin-top: 0; color: #f1f5f9; }
         input, select, button { padding: 12px; margin: 8px 0; width: 100%; box-sizing: border-box; border-radius: 6px; border: 1px solid #475569; background: #0f172a; color: #fff; font-size: 14px; }
         button { background: #2563eb; font-weight: bold; cursor: pointer; border: none; }
         button:hover { background: #1d4ed8; }
+        .btn-gold { background: linear-gradient(135deg, #fbbf24, #d97706); color: #000; }
         .btn-logout { background: #64748b; width: auto; float: right; padding: 6px 16px; margin: 0; }
         .hidden { display: none !important; }
         table { width: 100%; border-collapse: collapse; margin-top: 15px; }
         th, td { border: 1px solid #334155; padding: 12px; text-align: left; }
         th { background: #0f172a; color: #94a3b8; }
         .btn-del { background: #ef4444; width: auto; padding: 6px 12px; margin: 0; }
+        .rank-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-top: 10px; }
+        .rank-item-box { background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 12px; }
     </style>
 </head>
 <body>
@@ -36,10 +39,23 @@
         <!-- GIAO DIỆN QUẢN TRỊ -->
         <div id="adminSection" class="hidden">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                <h2>🔥 Admin Management (Firebase)</h2>
+                <h2>🔥 Admin Management Dashboard</h2>
                 <button class="btn-logout" onclick="logout()">Đăng xuất</button>
             </div>
 
+            <!-- CẤU HÌNH QUÀ RANK -->
+            <div class="card">
+                <h3>🎁 Quản Lý phần thưởng Đấu Hạng (Rank Rewards)</h3>
+                <p style="font-size: 12px; color: #94a3b8;">Tùy chỉnh số Vàng & Kim Cương người chơi nhận được khi đạt bậc Rank tương ứng.</p>
+                
+                <div class="rank-grid" id="rankRewardContainer">
+                    <!-- Tự động sinh danh sách ô nhập quà từng bậc Rank -->
+                </div>
+
+                <button class="btn btn-gold" id="btnSaveRankRewards" style="margin-top: 15px;">💾 LƯU CẤU HÌNH QUÀ RANK</button>
+            </div>
+
+            <!-- QUẢN LÝ NHIỆM VỤ HÀNG NGÀY -->
             <div class="card">
                 <h3>Thêm Nhiệm Vụ Hàng Ngày</h3>
                 <form id="questForm">
@@ -51,7 +67,7 @@
                         <option value="COMPLETE_PUZZLE">Ghép xong 1 bức tranh</option>
                     </select>
                     <input type="number" id="target" placeholder="Mục tiêu (VD: 3)" required>
-                    <input type="number" id="rewardExp" placeholder="Điểm EXP thưởng (VD: 150)" required>
+                    <input type="number" id="rewardExp" placeholder="Điểm EXP/Vàng thưởng (VD: 150)" required>
                     <button type="submit" id="submitBtn">➕ Thêm Nhiệm Vụ</button>
                 </form>
             </div>
@@ -77,36 +93,46 @@
 
     </div>
 
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+    <!-- FIREBASE MODULAR SCRIPTS -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-    <script>
-        // Cấu hình tài khoản & mật khẩu Admin cố định
+        const firebaseConfig = { 
+            apiKey : "AIzaSyCpqwIbFqleWcid_7oE2GKbHJUCxhEGKDc" , 
+            authDomain : "puzzle-online-auth.firebaseapp.com" , 
+            databaseURL : "https://puzzle-online-auth-default-rtdb.asia-southeast1.firebasedatabase.app" , 
+            projectId : "puzzle-online-auth" , 
+            storageBucket : "puzzle-online-auth.firebasestorage.app" , 
+            messagingSenderId : "733126189884" , 
+            appId : "1:733126189884:web:b6c97174bc84e8478a7439"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
         const ADMIN_USER = "admin";
         const ADMIN_PASS = "123456";
 
-        // Cấu hình Firebase
-        const firebaseConfig = { 
-        apiKey : "AIzaSyCpqwIbFqleWcid_7oE2GKbHJUCxhEGKDc" , 
-        authDomain : "puzzle-online-auth.firebaseapp.com" , 
-        databaseURL : "https://puzzle-online-auth-default-rtdb.asia-southeast1.firebasedatabase.app" , 
-        projectId : "puzzle-online-auth" , 
-        storageBucket : "puzzle-online-auth.firebasestorage.app" , 
-        messagingSenderId : "733126189884" , 
-        appId : "1:733126189884:web:b6c97174bc84e8478a7439" , 
-        measurementId : "G-90X4YDGY7C" 
+        const RANKS = ['Đồng', 'Bạc', 'Vàng', 'Bạch Kim', 'Kim Cương', 'Siêu Kim Cương', 'Cao Thủ', 'Đại Cao Thủ', 'Thách Đấu', 'Siêu Thách Đấu'];
+
+        const DEFAULT_REWARDS = {
+            'Đồng': { gold: 300, gems: 10 },
+            'Bạc': { gold: 500, gems: 20 },
+            'Vàng': { gold: 1000, gems: 50 },
+            'Bạch Kim': { gold: 2000, gems: 100 },
+            'Kim Cương': { gold: 3500, gems: 150 },
+            'Siêu Kim Cương': { gold: 5000, gems: 200 },
+            'Cao Thủ': { gold: 8000, gems: 300 },
+            'Đại Cao Thủ': { gold: 12000, gems: 500 },
+            'Thách Đấu': { gold: 20000, gems: 1000 },
+            'Siêu Thách Đấu': { gold: 30000, gems: 2000 }
         };
 
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.database();
-        const questsRef = db.ref('daily_quests');
-
-        // Kiểm tra xem đã đăng nhập chưa từ SessionStorage
         if (sessionStorage.getItem('isAdminLoggedIn') === 'true') {
             showAdminDashboard();
         }
 
-        // Xử lý đăng nhập
         document.getElementById('loginForm').addEventListener('submit', (e) => {
             e.preventDefault();
             const u = document.getElementById('adminUser').value;
@@ -120,77 +146,69 @@
             }
         });
 
-        function showAdminDashboard() {
-            document.getElementById('loginSection').classList.add('hidden');
-            document.getElementById('adminSection').classList.remove('hidden');
-            loadQuests();
-        }
-
-        function logout() {
+        window.logout = function() {
             sessionStorage.removeItem('isAdminLoggedIn');
             location.reload();
+        };
+
+        async function showAdminDashboard() {
+            document.getElementById('loginSection').classList.add('hidden');
+            document.getElementById('adminSection').classList.remove('hidden');
+            await loadRankRewards();
         }
 
-        // Thêm nhiệm vụ
-        document.getElementById('questForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            const submitBtn = document.getElementById('submitBtn');
-            submitBtn.disabled = true;
+        async function loadRankRewards() {
+            const container = document.getElementById('rankRewardContainer');
+            container.innerHTML = '';
 
-            const newQuest = {
-                title: document.getElementById('title').value,
-                desc: document.getElementById('desc').value,
-                type: document.getElementById('type').value,
-                target: Number(document.getElementById('target').value),
-                rewardExp: Number(document.getElementById('rewardExp').value),
-                createdAt: Date.now()
-            };
+            let rewardsData = { ...DEFAULT_REWARDS };
 
-            questsRef.push(newQuest)
-                .then(() => {
-                    alert("✅ Đã thêm nhiệm vụ thành công!");
-                    document.getElementById('questForm').reset();
-                })
-                .catch((err) => {
-                    alert("❌ Lỗi: " + err.message);
-                })
-                .finally(() => {
-                    submitBtn.disabled = false;
-                });
-        });
-
-        // Load danh sách realtime
-        function loadQuests() {
-            questsRef.on('value', (snapshot) => {
-                const listEl = document.getElementById('questList');
-                listEl.innerHTML = '';
-                const data = snapshot.val();
-
-                if (!data) {
-                    listEl.innerHTML = '<tr><td colspan="5" style="text-align:center; color:#94a3b8;">Chưa có nhiệm vụ nào!</td></tr>';
-                    return;
+            try {
+                const docSnap = await getDoc(doc(db, "settings", "rank_rewards"));
+                if (docSnap.exists()) {
+                    rewardsData = { ...rewardsData, ...docSnap.data() };
                 }
+            } catch (err) {
+                console.error("Lỗi tải quà rank:", err);
+            }
 
-                Object.keys(data).forEach(key => {
-                    const q = data[key];
-                    listEl.innerHTML += `
-                        <tr>
-                            <td><b>${q.title}</b><br><small style="color:#94a3b8">${q.desc || ''}</small></td>
-                            <td><code>${q.type}</code></td>
-                            <td>${q.target}</td>
-                            <td>+${q.rewardExp} EXP</td>
-                            <td><button class="btn-del" onclick="deleteQuest('${key}')">Xóa</button></td>
-                        </tr>
-                    `;
-                });
+            RANKS.forEach(rank => {
+                const item = rewardsData[rank] || { gold: 100, gems: 10 };
+                const div = document.createElement('div');
+                div.className = 'rank-item-box';
+                div.innerHTML = `
+                    <div style="font-weight:bold; color:#fbbf24; margin-bottom: 5px;">Hạng ${rank}</div>
+                    <div style="display:flex; gap: 8px;">
+                        <input type="number" id="gold_${rank}" value="${item.gold}" placeholder="Vàng" style="margin:0;">
+                        <input type="number" id="gems_${rank}" value="${item.gems}" placeholder="Kim cương" style="margin:0;">
+                    </div>
+                `;
+                container.appendChild(div);
             });
         }
 
-        function deleteQuest(questKey) {
-            if (confirm("Xóa nhiệm vụ này?")) {
-                db.ref(`daily_quests/${questKey}`).remove();
+        document.getElementById('btnSaveRankRewards').addEventListener('click', async () => {
+            const btn = document.getElementById('btnSaveRankRewards');
+            btn.disabled = true;
+            btn.innerText = "⏳ ĐANG LƯU CẤU HÌNH...";
+
+            const updatedData = {};
+            RANKS.forEach(rank => {
+                const g = Number(document.getElementById(`gold_${rank}`).value) || 0;
+                const d = Number(document.getElementById(`gems_${rank}`).value) || 0;
+                updatedData[rank] = { gold: g, gems: d };
+            });
+
+            try {
+                await setDoc(doc(db, "settings", "rank_rewards"), updatedData);
+                alert("✅ Cập nhật phần thưởng Rank thành công!");
+            } catch (err) {
+                alert("❌ Lỗi lưu phần thưởng: " + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "💾 LƯU CẤU HÌNH QUÀ RANK";
             }
-        }
+        });
     </script>
 </body>
 </html>
