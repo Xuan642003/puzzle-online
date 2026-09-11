@@ -173,7 +173,6 @@
 
         .app-container { display: flex; flex-direction: column; width: 100vw; height: 100vh; padding: 12px; gap: 10px; }
         
-        /* HEADER GAMEPLAY ĐÃ FIX CHUẨN XÓA KÝ TỰ THỪA */
         header {
             display: flex; justify-content: space-between; align-items: center;
             background: #131b2e; padding: 10px 20px; border-radius: 10px; border: 1px solid #2a3859;
@@ -288,13 +287,12 @@
                         </div>
                     </div>
 
-                    <!-- NHIỆM VỤ HÀNG NGÀY -->
-                <div class="quests-box">
-                    <div style="font-size: 12px; font-weight: bold; color: #38bdf8; text-transform: uppercase; margin-bottom: 8px;">📜 Nhiệm Vụ Hàng Ngày</div>
-                    
-                    <!-- Khung chứa động này sẽ tự động load nhiệm vụ từ Admin qua Firebase -->
-                    <div id="userQuestList">
-                        <div style="color: #94a3b8; font-size: 11px;">Đang tải danh sách nhiệm vụ...</div>
+                    <!-- NHIỆM VỤ HÀNG NGÀY (REALTIME TỪ FIREBASE) -->
+                    <div class="quests-box">
+                        <div style="font-size: 12px; font-weight: bold; color: #38bdf8; text-transform: uppercase; margin-bottom: 8px;">📜 Nhiệm Vụ Hàng Ngày</div>
+                        <div id="userQuestList">
+                            <div style="color: #94a3b8; font-size: 11px;">Đang tải danh sách nhiệm vụ...</div>
+                        </div>
                     </div>
                 </div>
 
@@ -312,7 +310,6 @@
                 <button class="btn btn-danger" style="position: absolute; top: 15px; left: 15px; padding: 5px 10px; font-size: 11px;" id="btn-back-from-rank">⬅️ Quay Lại</button>
                 <button class="btn btn-gold" style="position: absolute; top: 15px; right: 15px; padding: 5px 10px; font-size: 11px;" id="btn-open-rewards">🎁 Quy Tắc Rank</button>
 
-                <!-- SVG HUY HIỆU ĐỘNG -->
                 <div class="rank-badge-svg-wrap" id="rank-badge-svg-container"></div>
 
                 <div class="rank-title-txt" id="rank-name-display">ĐỒNG IV</div>
@@ -422,7 +419,7 @@
         </div>
     </div>
 
-    <!-- MAIN GAMEPLAY (ĐÃ FIX SẠCH VÀ SỬA LỖI ROUND) -->
+    <!-- MAIN GAMEPLAY -->
     <div class="app-container">
         <header>
             <div class="score-board" id="score-board-wrapper">
@@ -460,6 +457,7 @@
         const firebaseConfig = {
             apiKey: "AIzaSyCpqwIbFqleWcid_7oE2GKbHJUCxhEGKDc",
             authDomain: "puzzle-online-auth.firebaseapp.com",
+            databaseURL: "https://puzzle-online-auth-default-rtdb.asia-southeast1.firebasedatabase.app",
             projectId: "puzzle-online-auth",
             storageBucket: "puzzle-online-auth.firebasestorage.app",
             messagingSenderId: "733126189884",
@@ -602,7 +600,6 @@
         async function saveUserToDatabase(user, customName = null) {
             const userRef = doc(db, "users", user.uid);
             const userSnap = await getDoc(userRef);
-            const todayStr = new Date().toISOString().slice(0, 10);
 
             if (!userSnap.exists()) {
                 userProfileData = {
@@ -613,20 +610,11 @@
                     level: 1, gold: 1000, gems: 50, 
                     totalPoints: 0,
                     bravery: 0,
-                    dailyMatches: 0, lastDailyReset: todayStr,
-                    claimedQ1: false, claimedQ2: false,
                     createdAt: serverTimestamp(), lastLogin: serverTimestamp()
                 };
                 await setDoc(userRef, userProfileData);
             } else {
                 userProfileData = userSnap.data();
-                if (userProfileData.lastDailyReset !== todayStr) {
-                    userProfileData.dailyMatches = 0;
-                    userProfileData.claimedQ1 = false;
-                    userProfileData.claimedQ2 = false;
-                    userProfileData.lastDailyReset = todayStr;
-                    await setDoc(userRef, userProfileData, { merge: true });
-                }
             }
 
             updateLobbyUI();
@@ -671,21 +659,6 @@
             } else {
                 braveryWrapper.style.display = 'none';
             }
-
-            const dMatches = userProfileData.dailyMatches || 0;
-            document.getElementById('quest-1-prog').innerText = `Tiến độ: ${Math.min(dMatches, 3)}/3`;
-            document.getElementById('quest-2-prog').innerText = `Tiến độ: ${Math.min(dMatches, 5)}/5`;
-
-            const btnQ1 = document.getElementById('btn-claim-q1');
-            const btnQ2 = document.getElementById('btn-claim-q2');
-
-            if (userProfileData.claimedQ1) {
-                btnQ1.innerText = "Đã nhận"; btnQ1.disabled = true;
-            } else { btnQ1.disabled = dMatches < 3; }
-
-            if (userProfileData.claimedQ2) {
-                btnQ2.innerText = "Đã nhận"; btnQ2.disabled = true;
-            } else { btnQ2.disabled = dMatches < 5; }
         }
 
         document.getElementById('btn-open-rank-view').addEventListener('click', () => {
@@ -704,26 +677,6 @@
 
         document.getElementById('btn-close-rewards').addEventListener('click', () => {
             modalRewards.classList.add('hidden');
-        });
-
-        document.getElementById('btn-claim-q1').addEventListener('click', async () => {
-            if (userProfileData.dailyMatches >= 3 && !userProfileData.claimedQ1) {
-                userProfileData.gold = (userProfileData.gold || 0) + 300;
-                userProfileData.claimedQ1 = true;
-                await setDoc(doc(db, "users", currentUser.uid), userProfileData, { merge: true });
-                updateLobbyUI();
-                alert("🎉 Bạn nhận được 300 Vàng!");
-            }
-        });
-
-        document.getElementById('btn-claim-q2').addEventListener('click', async () => {
-            if (userProfileData.dailyMatches >= 5 && !userProfileData.claimedQ2) {
-                userProfileData.gold = (userProfileData.gold || 0) + 500;
-                userProfileData.claimedQ2 = true;
-                await setDoc(doc(db, "users", currentUser.uid), userProfileData, { merge: true });
-                updateLobbyUI();
-                alert("🎉 Bạn nhận được 500 Vàng!");
-            }
         });
 
         async function loadLeaderboard() {
@@ -988,11 +941,10 @@
             roomStatus.innerText = "⏳ Đã tải ảnh lên! Đang chờ bắt đầu...";
         });
 
-        // XỬ LÝ KHỞI TẠO TRẬN ĐẤU (ẨN ROUND NẾU ĐÁNH RANK)
+        // XỬ LÝ KHỞI TẠO TRẬN ĐẤU
         socket.on('gameStarted', ({ imageSrc, gridSize, hintPieces, showHint, currentRound, scores, players, mode }) => {
             document.getElementById('overlay').classList.add('hidden');
             
-            // Xử lý ẩn Round nếu là chế độ Rank BO1
             if (mode === 'ranked') {
                 roundInfo.classList.add('hidden');
                 document.getElementById('score-board-wrapper').classList.add('hidden');
@@ -1130,8 +1082,6 @@
             const isIWin = (winner === userProfileData.displayName);
             let rewardMsg = "";
 
-            userProfileData.dailyMatches = (userProfileData.dailyMatches || 0) + 1;
-
             if (mode === 'ranked') {
                 const currentRank = calculateRankDetails(userProfileData.totalPoints || 0);
 
@@ -1183,30 +1133,29 @@
             location.reload();
         });
     </script>
-        <!-- Nhúng Firebase SDK -->
+
+    <!-- FIREBASE COMPAT SDK & XỬ LÝ NHIỆM VỤ DYNAMIC -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
 
     <script>
-        const firebaseConfig = { 
+        const firebaseCompatConfig = { 
             apiKey : "AIzaSyCpqwIbFqleWcid_7oE2GKbHJUCxhEGKDc" , 
             authDomain : "puzzle-online-auth.firebaseapp.com" , 
             databaseURL : "https://puzzle-online-auth-default-rtdb.asia-southeast1.firebasedatabase.app" , 
             projectId : "puzzle-online-auth" , 
             storageBucket : "puzzle-online-auth.firebasestorage.app" , 
             messagingSenderId : "733126189884" , 
-            appId : "1:733126189884:web:b6c97174bc84e8478a7439" , 
-            measurementId : "G-90X4YDGY7C" 
+            appId : "1:733126189884:web:b6c97174bc84e8478a7439"
         };
 
         if (!firebase.apps.length) {
-            firebase.initializeApp(firebaseConfig);
+            firebase.initializeApp(firebaseCompatConfig);
         }
-        const db = firebase.database();
+        const rtdb = firebase.database();
 
-        // 2. Tải danh sách nhiệm vụ động
         function loadUserDailyQuests() {
-            const questsRef = db.ref('daily_quests');
+            const questsRef = rtdb.ref('daily_quests');
 
             questsRef.on('value', (snapshot) => {
                 const questContainer = document.getElementById('userQuestList');
@@ -1225,7 +1174,6 @@
                 Object.keys(data).forEach(questId => {
                     const q = data[questId];
                     const currentProgress = userProgress[questId] || 0;
-                    const isCompleted = currentProgress >= q.target;
                     const isClaimed = userProgress[questId + '_claimed'] || false;
 
                     const questItem = document.createElement('div');
@@ -1239,7 +1187,7 @@
                         <div>
                             ${isClaimed 
                                 ? `<button class="btn" style="padding: 4px 8px; font-size: 10px; background: #64748b; color: #fff; cursor: not-allowed;" disabled>ĐÃ NHẬN</button>` 
-                                : `<button class="btn btn-gold" style="padding: 4px 8px; font-size: 10px;" onclick="claimQuestReward('${questId}', ${q.rewardExp})">Nhận ${q.rewardExp} 🪙</button>`
+                                : `<button class="btn btn-gold" style="padding: 4px 8px; font-size: 10px;" onclick="window.claimQuestReward('${questId}', ${q.rewardExp})">Nhận ${q.rewardExp} 🪙</button>`
                             }
                         </div>
                     `;
@@ -1248,16 +1196,14 @@
             });
         }
 
-        function claimQuestReward(questId, reward) {
+        window.claimQuestReward = function(questId, reward) {
             const userProgress = JSON.parse(localStorage.getItem('user_quest_progress') || '{}');
             userProgress[questId + '_claimed'] = true;
             localStorage.setItem('user_quest_progress', JSON.stringify(userProgress));
             alert(`🎉 Bạn đã nhận thành công ${reward} 🪙!`);
-        }
+        };
 
         document.addEventListener('DOMContentLoaded', loadUserDailyQuests);
     </script>
-</body>
-</html>
 </body>
 </html>
